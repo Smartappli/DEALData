@@ -19,6 +19,6 @@ granian==2.7.3
 psycopg[binary, pool]==3.3.3
 python-dotenv==1.2.2
 sentry-sdk[django]==2.57.0
-servestatic[brotli]==4.2.0
+servestatic[brotli]==4.3.0
 uuid-utils==0.14.1
 valkey[libvalkey]==6.1.1
