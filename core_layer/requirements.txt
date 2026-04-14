@@ -6,7 +6,7 @@ django-health-check[psutil]==4.2.2
 # --- Valkey / cache ---
 django-valkey[lz4]==0.4.0
 # --- Django ---
-Django[argon2]>=6.0.4,<6.1
+Django[argon2]==6.0.4
 
 # --- REST ---
 djangorestframework==3.17.1
