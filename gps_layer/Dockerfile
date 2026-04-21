@@ -1,5 +1,5 @@
 # Stage 1: Build with all dependencies
-FROM python:3.13-slim-trixie AS builder
+FROM python:3.14-slim-trixie AS builder
 
 ARG APP_HOME=/app
 WORKDIR ${APP_HOME}
@@ -52,7 +52,7 @@ RUN chmod +x ./entrypoint.sh
 RUN echo "GDAL_VERSION=$(gdal-config --version)" >> /etc/environment
 
 # Stage 2: Lightweight runtime image
-FROM python:3.13-slim-trixie AS runtime
+FROM python:3.14-slim-trixie AS runtime
 
 ARG APP_HOME=/app
 WORKDIR ${APP_HOME}
