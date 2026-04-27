@@ -13,7 +13,7 @@ djangorestframework==3.17.1
 djangorestframework-simplejwt==5.5.1
 
 # --- ASGI server (Django en ASGI) ---
-granian==2.7.3
+granian==2.7.4
 
 # --- Postgres driver ---
 psycopg[binary, pool]==3.3.3
