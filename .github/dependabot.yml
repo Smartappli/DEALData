@@ -1,33 +1,37 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    labels:
-      - "dependencies"
-      - "dependabot"
-
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "daily"
     labels:
-      - "dependencies"
-      - "dependabot"
+      - "🤖 Dependencies"
+      - "🤖 Dependabot"
+      - "python"
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "daily"
     labels:
-      - "dependencies"
-      - "dependabot"
+      - "🤖 Dependencies"
+      - "🤖 Dependabot"
+      - "docker"
 
   - package-ecosystem: "docker-compose"
     directory: "/"
     schedule:
       interval: "daily"
     labels:
-      - "dependencies"
-      - "dependabot"
+      - "🤖 Dependencies"
+      - "🤖 Dependabot"
+      - "docker-compose"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "🤖 Dependencies"
+      - "🤖 Dependabot"
+      - "github-actions"
