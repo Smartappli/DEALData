@@ -18,7 +18,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
 
       - name: Validate renovate.json syntax
         run: python -m json.tool renovate.json > /dev/null
