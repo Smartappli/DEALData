@@ -2,4 +2,29 @@
 name = "dealdata"
 version = "0.1.0"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "Django[argon2]==6.0.5",
+    "django-filter==25.2",
+    "django-health-check[psutil]==4.4.1",
+    "django-valkey[lz4]==0.4.1",
+    "djangorestframework==3.17.1",
+    "djangorestframework-simplejwt==5.5.1",
+    "granian==2.7.4",
+    "psycopg[binary,pool]==3.3.4",
+    "python-dotenv==1.2.2",
+    "sentry-sdk[django]==2.60.0",
+    "servestatic[brotli]==4.3.0",
+    "uuid-utils==0.16.0",
+    "valkey==6.1.1",
+]
+
+[project.optional-dependencies]
+test = [
+    "boto3",
+    "pytest",
+    "pytest-cov",
+    "pytest-django",
+]
+
+[tool.pytest.ini_options]
+python_files = ["tests.py", "test_*.py", "*_tests.py"]

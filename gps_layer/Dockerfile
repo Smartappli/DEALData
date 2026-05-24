@@ -84,7 +84,7 @@ RUN useradd -m appuser \
     && chown -R appuser:appuser /app
 
 COPY --from=builder /app /app
-COPY --from=builder /entrypoint.sh /entrypoin.sh
+COPY --from=builder /entrypoint.sh /entrypoint.sh
 
 RUN find /app -name "*.pyc" -delete \
     && find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
@@ -95,5 +95,7 @@ USER appuser
 # Expose the port (optional but handy)
 EXPOSE 7001
 
+ENTRYPOINT ["/entrypoint.sh"]
+
 # Startup command: Django ASGI via granian
-CMD ["granian", "gps.asgi:application", "--interface", "asginl", "--host", "0.0.0.0", "--port", "7001", "--workers", "2"]
+CMD ["granian", "gps.asgi:application", "--interface", "asgi", "--host", "0.0.0.0", "--port", "7001", "--workers", "2"]

@@ -35,4 +35,4 @@ EXPOSE 7000
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Startup command: Django ASGI via granian
-CMD ["granian", "sensor.asgi:application", "--interface", "asginl", "--host", "0.0.0.0", "--port", "7002", "--workers", "4"]
+CMD ["granian", "sensor.asgi:application", "--interface", "asgi", "--host", "0.0.0.0", "--port", "7002", "--workers", "4"]

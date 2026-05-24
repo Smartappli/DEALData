@@ -21,4 +21,4 @@ python-dotenv==1.2.2
 sentry-sdk[django]==2.60.0
 servestatic[brotli]==4.3.0
 uuid-utils==0.16.0
-valkey[libvalkey]==6.1.1
+valkey==6.1.1

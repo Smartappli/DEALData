@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import ClassVar
 
 from django.conf import settings
-from django.contrib.gis.db import models
+from django.db import models
 from django.core.exceptions import ValidationError
 from uuid_utils import uuid7
 
