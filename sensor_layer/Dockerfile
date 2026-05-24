@@ -30,7 +30,7 @@ RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Expose the port
-EXPOSE 7000
+EXPOSE 7002
 
 ENTRYPOINT ["/entrypoint.sh"]
 

@@ -37,13 +37,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
 
-      - name: Install GeoDjango system libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gdal-bin libgdal-dev libgeos-dev libproj-dev
-          gdal_library_path="$(find /usr/lib -name 'libgdal.so*' | sort | head -n 1)"
-          echo "GDAL_LIBRARY_PATH=${gdal_library_path}" >> "$GITHUB_ENV"
-
       - name: Install test dependencies
         run: python -m pip install --upgrade pip coverage
 

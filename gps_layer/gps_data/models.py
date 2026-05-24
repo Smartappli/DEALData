@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from django.contrib.gis.db import models
-from django.contrib.gis.geos import Point
+from django.db import models
 from django.db.models import F
 from uuid_utils import uuid7
 
@@ -194,9 +193,11 @@ class ProcessedGPSDataObservedObject(models.Model):
     processed_gps_data_observed_object_acquisition_time = models.DateTimeField()
     processed_gps_data_observed_object_longitude = models.FloatField()
     processed_gps_data_observed_object_latitude = models.FloatField()
-    processed_gps_data_observed_object_geom = models.PointField(
-        srid=4326,
-        spatial_index=True,
+    processed_gps_data_observed_object_geom = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Processed GPS Geometry",
+        help_text="GeoJSON point in EPSG:4326.",
     )
     processed_gps_data_observed_object_insert_timestamp = models.DateTimeField()
 
@@ -205,9 +206,8 @@ class ProcessedGPSDataObservedObject(models.Model):
         lon = self.processed_gps_data_observed_object_longitude
         lat = self.processed_gps_data_observed_object_latitude
         if lon is not None and lat is not None:
-            self.processed_gps_data_observed_object_geom = Point(
-                lon,
-                lat,
-                srid=4326,
-            )
+            self.processed_gps_data_observed_object_geom = {
+                "type": "Point",
+                "coordinates": [lon, lat],
+            }
         super().save(*args, **kwargs)
