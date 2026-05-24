@@ -22,13 +22,17 @@ from django.urls import path
 from gps_data.views import (
     WildFiGPSBatchIngestView,
     WildFiGPSIngestView,
+    WildFiGPSListView,
     health_live,
     health_ready,
+    metrics,
 )
 
 urlpatterns = [
     path("health/live/", health_live, name="health-live"),
     path("health/ready/", health_ready, name="health-ready"),
+    path("metrics/", metrics, name="metrics"),
+    path("api/wildfi/gps/", WildFiGPSListView.as_view(), name="wildfi-gps-list"),
     path(
         "api/ingest/wildfi/gps/",
         WildFiGPSIngestView.as_view(),
