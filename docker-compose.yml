@@ -1,0 +1,136 @@
+services:
+  core-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dealdata_core
+      POSTGRES_USER: dealdata
+      POSTGRES_PASSWORD: dealdata_dev_password
+    volumes:
+      - core-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dealdata -d dealdata_core"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gps-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dealdata_gps
+      POSTGRES_USER: dealdata
+      POSTGRES_PASSWORD: dealdata_dev_password
+    volumes:
+      - gps-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dealdata -d dealdata_gps"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sensor-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dealdata_sensor
+      POSTGRES_USER: dealdata
+      POSTGRES_PASSWORD: dealdata_dev_password
+    volumes:
+      - sensor-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dealdata -d dealdata_sensor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  core:
+    build:
+      context: ./core_layer
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: dev-core-secret
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,core
+      DATABASE_USE_POSTGRES: "true"
+      DATABASE_HOST: core-db
+      DATABASE_NAME: dealdata_core
+      DATABASE_USER: dealdata
+      DATABASE_PASSWORD: dealdata_dev_password
+    ports:
+      - "7000:7000"
+    depends_on:
+      core-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7000/health/live/', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gps:
+    build:
+      context: ./gps_layer
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: dev-gps-secret
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,gps
+      DEALDATA_INGEST_TOKEN: dev-ingest-token
+      DATABASE_USE_POSTGRES: "true"
+      DATABASE_HOST: gps-db
+      DATABASE_NAME: dealdata_gps
+      DATABASE_USER: dealdata
+      DATABASE_PASSWORD: dealdata_dev_password
+    ports:
+      - "7001:7001"
+    depends_on:
+      gps-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7001/health/live/', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sensor:
+    build:
+      context: ./sensor_layer
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: dev-sensor-secret
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,sensor
+      DEALDATA_INGEST_TOKEN: dev-ingest-token
+      DATABASE_USE_POSTGRES: "true"
+      DATABASE_HOST: sensor-db
+      DATABASE_NAME: dealdata_sensor
+      DATABASE_USER: dealdata
+      DATABASE_PASSWORD: dealdata_dev_password
+    ports:
+      - "7002:7002"
+    depends_on:
+      sensor-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7002/health/live/', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  core-db-data:
+  gps-db-data:
+  sensor-db-data:
