@@ -14,6 +14,7 @@ jobs:
   django:
     name: Django (${{ matrix.layer }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     services:
@@ -36,10 +37,13 @@ jobs:
         include:
           - layer: core_layer
             settings: core.settings
+            coverage_package: core_data
           - layer: gps_layer
             settings: gps.settings
+            coverage_package: gps_data
           - layer: sensor_layer
             settings: sensor.settings
+            coverage_package: sensor_data
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
@@ -56,7 +60,11 @@ jobs:
           python -m pip install \
             -r "${{ matrix.layer }}/requirements.txt" \
             pytest \
+            pytest-cov \
             pytest-django
+
+      - name: Compile Python files
+        run: python -m compileall -q ${{ matrix.layer }}
 
       - name: Django check
         working-directory: ${{ matrix.layer }}
@@ -86,11 +94,27 @@ jobs:
           DATABASE_NAME: dealdata_test
           DATABASE_USER: dealdata
           DATABASE_PASSWORD: dealdata_test_password
-        run: python -m pytest . --ds=${{ matrix.settings }} -q
+        run: |
+          python -m pytest . \
+            --ds=${{ matrix.settings }} \
+            --cov=${{ matrix.coverage_package }} \
+            --cov-report=term-missing \
+            --cov-report=xml:../coverage-${{ matrix.layer }}.xml \
+            --cov-fail-under=80 \
+            -q
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.layer }}
+          path: coverage-${{ matrix.layer }}.xml
+          if-no-files-found: error
 
   docker-build:
     name: Docker build (${{ matrix.layer }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
@@ -102,4 +126,4 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Build image
-        run: docker build ./${{ matrix.layer }}
+        run: docker build --pull ./${{ matrix.layer }}
