@@ -69,6 +69,12 @@ class WildFiGPSIngestView(APIView):
         if token_error:
             return token_error
 
+        if not isinstance(request.data, dict):
+            return Response(
+                {"detail": "Expected a JSON object."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             event = WildFiGPSFix.from_dealiot_event(request.data)
         except (TypeError, ValueError) as exc:
