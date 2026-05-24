@@ -19,9 +19,10 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
-from core_data.views import health_live
+from core_data.views import health_live, health_ready
 
 urlpatterns = [
     path("health/live/", health_live, name="health-live"),
+    path("health/ready/", health_ready, name="health-ready"),
     path("admin/", admin.site.urls),
 ]

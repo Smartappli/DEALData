@@ -44,11 +44,18 @@ docker compose up --build
 Endpoints utiles:
 
 - `GET http://localhost:7000/health/live/`
+- `GET http://localhost:7000/health/ready/`
+- `GET http://localhost:7001/health/ready/`
+- `GET http://localhost:7002/health/ready/`
 - `POST http://localhost:7001/api/ingest/wildfi/gps/`
+- `POST http://localhost:7001/api/ingest/wildfi/gps/batch/`
 - `POST http://localhost:7002/api/ingest/wildfi/sensor/`
+- `POST http://localhost:7002/api/ingest/wildfi/sensor/batch/`
 
 Les endpoints d'ingestion acceptent le header
 `X-DEALDATA-INGEST-TOKEN` quand `DEALDATA_INGEST_TOKEN` est defini.
+Les endpoints batch acceptent soit un tableau JSON, soit un objet
+`{"events": [...]}`.
 
 Pour une execution production, renseigner les variables de `.env.example`,
 puis lancer avec l'override:

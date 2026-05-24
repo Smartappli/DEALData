@@ -2,19 +2,42 @@
 
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connections, transaction
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import WildFiGPSFix
+from .serializers import WildFiGPSBatchSerializer, WildFiGPSIngestSerializer
 
 
 def health_live(request):
     """Return a cheap liveness response."""
     del request
     return JsonResponse({"status": "ok", "service": "gps"})
+
+
+def health_ready(request):
+    """Return readiness after checking the default database connection."""
+    del request
+    try:
+        with connections["default"].cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except Exception as exc:
+        return JsonResponse(
+            {
+                "status": "error",
+                "service": "gps",
+                "database": "unavailable",
+                "detail": str(exc),
+            },
+            status=503,
+        )
+    return JsonResponse(
+        {"status": "ok", "service": "gps", "database": "available"},
+    )
 
 
 def _token_error(request) -> Response | None:
@@ -57,6 +80,31 @@ def _serialize_event(event: WildFiGPSFix, *, duplicate: bool) -> dict[str, objec
     }
 
 
+def _ingest_event(payload: dict[str, object]) -> tuple[dict[str, object], int]:
+    serializer = WildFiGPSIngestSerializer(data=payload)
+    if not serializer.is_valid():
+        return {"detail": serializer.errors}, status.HTTP_400_BAD_REQUEST
+
+    event = WildFiGPSFix.from_dealiot_event(serializer.validated_data)
+    existing = _find_existing(event)
+    if existing:
+        return _serialize_event(existing, duplicate=True), status.HTTP_200_OK
+
+    try:
+        with transaction.atomic():
+            event.full_clean()
+            event.save()
+    except DjangoValidationError as exc:
+        return {"detail": exc.message_dict}, status.HTTP_400_BAD_REQUEST
+    except IntegrityError:
+        existing = _find_existing(event)
+        if existing:
+            return _serialize_event(existing, duplicate=True), status.HTTP_200_OK
+        raise
+
+    return _serialize_event(event, duplicate=False), status.HTTP_201_CREATED
+
+
 class WildFiGPSIngestView(APIView):
     """Receive decoded WildFi GPS events from DEALIoT."""
 
@@ -75,34 +123,59 @@ class WildFiGPSIngestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            event = WildFiGPSFix.from_dealiot_event(request.data)
-        except (TypeError, ValueError) as exc:
+        body, response_status = _ingest_event(request.data)
+        return Response(body, status=response_status)
+
+
+class WildFiGPSBatchIngestView(APIView):
+    """Receive a batch of decoded WildFi GPS events from DEALIoT."""
+
+    authentication_classes: list[type] = []
+    permission_classes: list[type] = []
+
+    def post(self, request) -> Response:
+        """Persist decoded DEALIoT `raw.gps` events idempotently."""
+        token_error = _token_error(request)
+        if token_error:
+            return token_error
+
+        data = request.data
+        if isinstance(data, list):
+            data = {"events": data}
+        if not isinstance(data, dict):
             return Response(
-                {"detail": str(exc)},
+                {"detail": "Expected a JSON object or array."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        existing = _find_existing(event)
-        if existing:
-            return Response(_serialize_event(existing, duplicate=True))
-
-        try:
-            with transaction.atomic():
-                event.full_clean()
-                event.save()
-        except DjangoValidationError as exc:
+        serializer = WildFiGPSBatchSerializer(data=data)
+        if not serializer.is_valid():
             return Response(
-                {"detail": exc.message_dict},
+                {"detail": serializer.errors},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except IntegrityError:
-            existing = _find_existing(event)
-            if existing:
-                return Response(_serialize_event(existing, duplicate=True))
-            raise
+
+        results = []
+        inserted = 0
+        duplicates = 0
+        errors = 0
+        for index, event_payload in enumerate(serializer.validated_data["events"]):
+            body, response_status = _ingest_event(event_payload)
+            result = {"index": index, "status": response_status, **body}
+            results.append(result)
+            if response_status == status.HTTP_201_CREATED:
+                inserted += 1
+            elif response_status == status.HTTP_200_OK and body.get("duplicate"):
+                duplicates += 1
+            else:
+                errors += 1
 
         return Response(
-            _serialize_event(event, duplicate=False),
-            status=status.HTTP_201_CREATED,
+            {
+                "inserted": inserted,
+                "duplicates": duplicates,
+                "errors": errors,
+                "results": results,
+            },
+            status=status.HTTP_200_OK if errors == 0 else status.HTTP_207_MULTI_STATUS,
         )

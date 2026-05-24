@@ -16,6 +16,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: dealdata_test
+          POSTGRES_USER: dealdata
+          POSTGRES_PASSWORD: dealdata_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dealdata -d dealdata_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       fail-fast: false
       matrix:
@@ -46,12 +60,46 @@ jobs:
 
       - name: Django check
         working-directory: ${{ matrix.layer }}
+        env:
+          DATABASE_USE_POSTGRES: "true"
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_NAME: dealdata_test
+          DATABASE_USER: dealdata
+          DATABASE_PASSWORD: dealdata_test_password
         run: python manage.py check
 
       - name: Check migrations are committed
         working-directory: ${{ matrix.layer }}
+        env:
+          DATABASE_USE_POSTGRES: "true"
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_NAME: dealdata_test
+          DATABASE_USER: dealdata
+          DATABASE_PASSWORD: dealdata_test_password
         run: python manage.py makemigrations --check --dry-run
 
       - name: Run tests
         working-directory: ${{ matrix.layer }}
+        env:
+          DATABASE_USE_POSTGRES: "true"
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_NAME: dealdata_test
+          DATABASE_USER: dealdata
+          DATABASE_PASSWORD: dealdata_test_password
         run: python -m pytest . --ds=${{ matrix.settings }} -q
+
+  docker-build:
+    name: Docker build (${{ matrix.layer }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        layer: [core_layer, gps_layer, sensor_layer]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Build image
+        run: docker build ./${{ matrix.layer }}

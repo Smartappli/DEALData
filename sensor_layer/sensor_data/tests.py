@@ -80,3 +80,50 @@ def test_wildfi_sensor_ingest_is_idempotent() -> None:
     assert second_response.status_code == 200
     assert second_response.data["duplicate"] is True
     assert WildFiDecodedSensorEvent.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_wildfi_sensor_batch_ingest_accepts_duplicates() -> None:
+    """Batch ingestion reports inserts and duplicates without failing."""
+    client = APIClient()
+    event = {
+        "event_id": "sensor-event-2",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": {
+            "sensor_type": "temperature",
+            "value": 18.5,
+            "unit": "C",
+        },
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/sensor/batch/",
+        {"events": [event, event]},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["inserted"] == 1
+    assert response.data["duplicates"] == 1
+    assert response.data["errors"] == 0
+    assert WildFiDecodedSensorEvent.objects.count() == 1
+
+
+def test_wildfi_sensor_ingest_rejects_scalar_payload() -> None:
+    """Sensor validation rejects non-object decoded payloads."""
+    client = APIClient()
+    event = {
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": 18.5,
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/sensor/",
+        event,
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "payload" in str(response.data["detail"])

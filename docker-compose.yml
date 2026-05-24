@@ -64,7 +64,7 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7000/health/live/', timeout=2)",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7000/health/ready/', timeout=2)",
         ]
       interval: 10s
       timeout: 5s
@@ -94,7 +94,7 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7001/health/live/', timeout=2)",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7001/health/ready/', timeout=2)",
         ]
       interval: 10s
       timeout: 5s
@@ -124,7 +124,7 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7002/health/live/', timeout=2)",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7002/health/ready/', timeout=2)",
         ]
       interval: 10s
       timeout: 5s

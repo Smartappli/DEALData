@@ -357,6 +357,7 @@ class WildFiGPSFix(models.Model):
             event_id=str(event.get("event_id") or event.get("id") or ""),
             message_key=str(event.get("key") or ""),
             payload_hash=_stable_event_hash(event),
+            observed_object_id=event.get("observed_object_id"),
             dealiot_topic=str(event.get("topic") or topic),
             source=str(event.get("source") or "wildfi-mqtt"),
             mqtt_topic=str(event.get("mqtt_topic") or ""),

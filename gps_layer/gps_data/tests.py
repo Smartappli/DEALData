@@ -1,7 +1,9 @@
 """Tests for the gps_data application."""
 
 import pytest
-from gps_data.models import GPSSensor, WildFiGPSFix
+from gps_data.models import GPSSensor, ProcessedGPSDataObservedObject, WildFiGPSFix
+from django.test import Client
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 
@@ -71,3 +73,128 @@ def test_wildfi_gps_ingest_is_idempotent() -> None:
     assert second_response.status_code == 200
     assert second_response.data["duplicate"] is True
     assert WildFiGPSFix.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_wildfi_gps_batch_ingest_accepts_duplicates() -> None:
+    """Batch ingestion reports inserts and duplicates without failing."""
+    client = APIClient()
+    event = {
+        "event_id": "gps-event-2",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 50.6333,
+        "longitude": 5.5667,
+        "payload": {"fix": 3},
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/gps/batch/",
+        {"events": [event, event]},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["inserted"] == 1
+    assert response.data["duplicates"] == 1
+    assert response.data["errors"] == 0
+    assert WildFiGPSFix.objects.count() == 1
+
+
+def test_wildfi_gps_ingest_rejects_missing_longitude() -> None:
+    """GPS validation rejects events without a longitude."""
+    client = APIClient()
+    event = {
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 50.6333,
+        "payload": {"fix": 3},
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/gps/",
+        event,
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "longitude" in str(response.data["detail"])
+
+
+@pytest.mark.django_db
+def test_wildfi_gps_ingest_rejects_invalid_token(settings) -> None:
+    """Ingestion rejects requests with a wrong shared token."""
+    settings.DEALDATA_INGEST_TOKEN = "expected-token"
+    client = APIClient()
+    event = {
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 50.6333,
+        "longitude": 5.5667,
+        "payload": {"fix": 3},
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/gps/",
+        event,
+        format="json",
+        HTTP_X_DEALDATA_INGEST_TOKEN="wrong-token",
+    )
+
+    assert response.status_code == 403
+    assert WildFiGPSFix.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_wildfi_gps_batch_ingest_accepts_array_body() -> None:
+    """Batch ingestion accepts a bare JSON array from DEALIoT."""
+    client = APIClient()
+    event = {
+        "event_id": "gps-event-array",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 50.6333,
+        "longitude": 5.5667,
+        "payload": {"fix": 3},
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/gps/batch/",
+        [event],
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["inserted"] == 1
+
+
+@pytest.mark.django_db
+def test_health_ready_reports_database_available() -> None:
+    """Readiness checks database access."""
+    response = Client().get("/health/ready/")
+
+    assert response.status_code == 200
+    assert response.json()["database"] == "available"
+
+
+@pytest.mark.django_db
+def test_processed_gps_data_populates_geojson() -> None:
+    """Processed GPS data mirrors lon/lat into GeoJSON."""
+    gps_sensor = GPSSensor.objects.create(
+        gps_sensors_code="GPS-GEOJSON",
+        gps_sensor_purchase_date="2026-05-24",
+        gps_sensor_frequency=60,
+    )
+    processed = ProcessedGPSDataObservedObject.objects.create(
+        processed_gps_data_sensors=gps_sensor,
+        processed_gps_data_observed_object_uuid="00000000-0000-0000-0000-000000000001",
+        processed_gps_data_observed_object_acquisition_time=timezone.now(),
+        processed_gps_data_observed_object_longitude=5.5667,
+        processed_gps_data_observed_object_latitude=50.6333,
+        processed_gps_data_observed_object_insert_timestamp=timezone.now(),
+    )
+
+    assert processed.processed_gps_data_observed_object_geom == {
+        "type": "Point",
+        "coordinates": [5.5667, 50.6333],
+    }
