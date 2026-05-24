@@ -134,3 +134,21 @@ def test_health_ready(db) -> None:
 
     assert response.status_code == 200
     assert response.json()["database"] == "available"
+
+
+@pytest.mark.django_db
+def test_metrics_exposes_prometheus_counts() -> None:
+    """Metrics endpoint exposes core domain counters."""
+    user = User.objects.create_user(username="metrics-owner")
+    Project.objects.create(
+        project_code="DEAL-METRICS",
+        project_primary_owner=user,
+    )
+    ObservedObject.objects.create(observed_object_code="OBJ-METRICS")
+
+    response = Client().get("/metrics/")
+    text = response.content.decode()
+
+    assert response.status_code == 200
+    assert "dealdata_core_projects_total 1" in text
+    assert "dealdata_core_observed_objects_total 1" in text
