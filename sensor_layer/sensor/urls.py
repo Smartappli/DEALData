@@ -22,13 +22,21 @@ from django.urls import path
 from sensor_data.views import (
     WildFiSensorBatchIngestView,
     WildFiSensorIngestView,
+    WildFiSensorListView,
     health_live,
     health_ready,
+    metrics,
 )
 
 urlpatterns = [
     path("health/live/", health_live, name="health-live"),
     path("health/ready/", health_ready, name="health-ready"),
+    path("metrics/", metrics, name="metrics"),
+    path(
+        "api/wildfi/sensor/",
+        WildFiSensorListView.as_view(),
+        name="wildfi-sensor-list",
+    ),
     path(
         "api/ingest/wildfi/sensor/",
         WildFiSensorIngestView.as_view(),
