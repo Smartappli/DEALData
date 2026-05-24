@@ -1,5 +1,7 @@
 """Test module for the sensor data application."""
 
+import pytest
+from rest_framework.test import APIClient
 from sensor_data.models import Sensor, SensorData, WildFiDecodedSensorEvent
 
 
@@ -45,3 +47,36 @@ def test_wildfi_sensor_event_from_dealiot_event() -> None:
     assert sensor_event.sensor_type == "temperature"
     assert sensor_event.payload["value"] == 18.5
     assert sensor_event.message_metadata == {"qos": 1, "retain": False}
+    assert sensor_event.payload_hash
+
+
+@pytest.mark.django_db
+def test_wildfi_sensor_ingest_is_idempotent() -> None:
+    """Posting the same DEALIoT sensor event twice does not duplicate it."""
+    client = APIClient()
+    event = {
+        "event_id": "sensor-event-1",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": {
+            "sensor_type": "temperature",
+            "value": 18.5,
+            "unit": "C",
+        },
+    }
+
+    first_response = client.post(
+        "/api/ingest/wildfi/sensor/",
+        event,
+        format="json",
+    )
+    second_response = client.post(
+        "/api/ingest/wildfi/sensor/",
+        event,
+        format="json",
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 200
+    assert second_response.data["duplicate"] is True
+    assert WildFiDecodedSensorEvent.objects.count() == 1

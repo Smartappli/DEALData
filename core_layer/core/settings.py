@@ -68,7 +68,7 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
-    ["localhost", "127.0.0.1"] if DEBUG else [],
+    ["localhost", "127.0.0.1", "testserver"] if DEBUG else [],
 )
 if not DEBUG and not ALLOWED_HOSTS:
     message = "DJANGO_ALLOWED_HOSTS is required when DJANGO_DEBUG is false."

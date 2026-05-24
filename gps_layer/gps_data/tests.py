@@ -1,6 +1,8 @@
 """Tests for the gps_data application."""
 
+import pytest
 from gps_data.models import GPSSensor, WildFiGPSFix
+from rest_framework.test import APIClient
 
 
 def test_gps_sensor_string_representation() -> None:
@@ -38,3 +40,34 @@ def test_wildfi_gps_fix_from_dealiot_event() -> None:
         "type": "Point",
         "coordinates": [5.5667, 50.6333],
     }
+    assert gps_fix.payload_hash
+
+
+@pytest.mark.django_db
+def test_wildfi_gps_ingest_is_idempotent() -> None:
+    """Posting the same DEALIoT GPS event twice does not duplicate it."""
+    client = APIClient()
+    event = {
+        "event_id": "gps-event-1",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 50.6333,
+        "longitude": 5.5667,
+        "payload": {"fix": 3},
+    }
+
+    first_response = client.post(
+        "/api/ingest/wildfi/gps/",
+        event,
+        format="json",
+    )
+    second_response = client.post(
+        "/api/ingest/wildfi/gps/",
+        event,
+        format="json",
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 200
+    assert second_response.data["duplicate"] is True
+    assert WildFiGPSFix.objects.count() == 1
