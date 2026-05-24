@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import hashlib
+import json
 from typing import Any, ClassVar
 
 from django.db import models
@@ -48,6 +50,17 @@ def _event_metadata(event: dict[str, Any]) -> dict[str, Any]:
     """Keep transport metadata from MQTT/Kafka without shaping it too early."""
     metadata_fields = ("qos", "retain", "partition", "offset", "key")
     return {field: event[field] for field in metadata_fields if field in event}
+
+
+def _stable_event_hash(event: dict[str, Any]) -> str:
+    """Build a stable idempotency hash for a decoded DEALIoT event."""
+    serialized = json.dumps(
+        event,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 class Sensor(models.Model):
@@ -192,6 +205,23 @@ class WildFiDecodedSensorEvent(models.Model):
         editable=False,
     )
     wildfi_device_id = models.CharField(max_length=128, db_index=True)
+    event_id = models.CharField(
+        max_length=128,
+        blank=True,
+        db_index=True,
+        help_text="Optional upstream DEALIoT/Kafka event identifier.",
+    )
+    message_key = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Optional Kafka or MQTT key used by DEALIoT.",
+    )
+    payload_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        db_index=True,
+        help_text="Stable SHA-256 hash used for idempotent ingestion.",
+    )
     observed_object_id = models.UUIDField(
         null=True,
         blank=True,
@@ -221,6 +251,18 @@ class WildFiDecodedSensorEvent(models.Model):
             models.Index(fields=["dealiot_topic", "acquisition_time"]),
             models.Index(fields=["sensor_type", "acquisition_time"]),
         ]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["source", "event_id"],
+                condition=~models.Q(event_id=""),
+                name="uq_wildfi_sensor_source_event_id",
+            ),
+            models.UniqueConstraint(
+                fields=["source", "payload_hash"],
+                condition=~models.Q(payload_hash=""),
+                name="uq_wildfi_sensor_source_payload_hash",
+            ),
+        ]
 
     @classmethod
     def from_dealiot_event(
@@ -245,6 +287,9 @@ class WildFiDecodedSensorEvent(models.Model):
 
         return cls(
             wildfi_device_id=str(device_id),
+            event_id=str(event.get("event_id") or event.get("id") or ""),
+            message_key=str(event.get("key") or ""),
+            payload_hash=_stable_event_hash(event),
             dealiot_topic=str(event.get("topic") or topic),
             source=str(event.get("source") or "wildfi-mqtt"),
             mqtt_topic=str(event.get("mqtt_topic") or ""),
@@ -260,6 +305,21 @@ class WildFiDecodedSensorEvent(models.Model):
             payload=payload,
             message_metadata=_event_metadata(event),
         )
+
+    def save(self, *args, **kwargs):
+        """Ensure directly-created events still have an idempotency hash."""
+        if not self.payload_hash:
+            payload = {
+                "device_id": self.wildfi_device_id,
+                "timestamp": self.acquisition_time,
+                "topic": self.dealiot_topic,
+                "source": self.source,
+                "mqtt_topic": self.mqtt_topic,
+                "sensor_type": self.sensor_type,
+                "payload": self.payload,
+            }
+            self.payload_hash = _stable_event_hash(payload)
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         """Return a readable device and timestamp pair."""

@@ -19,7 +19,14 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
+from sensor_data.views import WildFiSensorIngestView, health_live
 
 urlpatterns = [
+    path("health/live/", health_live, name="health-live"),
+    path(
+        "api/ingest/wildfi/sensor/",
+        WildFiSensorIngestView.as_view(),
+        name="wildfi-sensor-ingest",
+    ),
     path("admin/", admin.site.urls),
 ]
