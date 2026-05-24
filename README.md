@@ -4,11 +4,22 @@ DEALData regroupe les services Django qui portent les donnees metier de la
 plateforme DEAL:
 
 - `core_layer`: projets, membres, objets observes et experiences.
-- `gps_layer`: capteurs GPS, donnees GPS brutes et positions traitees.
-- `sensor_layer`: capteurs generiques et mesures associees.
+- `gps_layer`: capteurs GPS, donnees GPS brutes, positions traitees et
+  evenements WildFi `raw.gps` decodes par DEALIoT.
+- `sensor_layer`: capteurs generiques, mesures associees et evenements WildFi
+  `raw.sensor` decodes par DEALIoT.
 
 Le depot est prevu comme fournisseur de donnees pour `Smartappli/DEALIoT` et
 comme ensemble de modules deployables derriere `Smartappli/DEALHost`.
+
+Les donnees WildFi arrivent via les contrats DEALIoT suivants:
+
+- `raw.gps` vers `gps_data.WildFiGPSFix`
+- `raw.sensor` vers `sensor_data.WildFiDecodedSensorEvent`
+
+Ces tables conservent l'enveloppe DEALIoT (`device_id`, `timestamp`,
+`source`, `mqtt_topic`, `ingested_at`) avec le payload decode et les
+metadonnees de transport.
 
 ## Verification locale
 
