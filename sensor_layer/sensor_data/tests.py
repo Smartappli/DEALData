@@ -1,6 +1,7 @@
 """Test module for the sensor data application."""
 
 import pytest
+from django.test import Client
 from rest_framework.test import APIClient
 from sensor_data.models import Sensor, SensorData, WildFiDecodedSensorEvent
 
@@ -127,3 +128,72 @@ def test_wildfi_sensor_ingest_rejects_scalar_payload() -> None:
 
     assert response.status_code == 400
     assert "payload" in str(response.data["detail"])
+
+
+@pytest.mark.django_db
+def test_wildfi_sensor_ingest_rejects_invalid_token(settings) -> None:
+    """Ingestion rejects requests with a wrong shared token."""
+    settings.DEALDATA_INGEST_TOKEN = "expected-token"
+    client = APIClient()
+    event = {
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": {"sensor_type": "temperature", "value": 18.5},
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/sensor/",
+        event,
+        format="json",
+        HTTP_X_DEALDATA_INGEST_TOKEN="wrong-token",
+    )
+
+    assert response.status_code == 403
+    assert WildFiDecodedSensorEvent.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_wildfi_sensor_batch_ingest_accepts_array_body() -> None:
+    """Batch ingestion accepts a bare JSON array from DEALIoT."""
+    client = APIClient()
+    event = {
+        "event_id": "sensor-event-array",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": {"sensor_type": "temperature", "value": 18.5},
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/sensor/batch/",
+        [event],
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["inserted"] == 1
+
+
+@pytest.mark.django_db
+def test_health_ready_reports_database_available() -> None:
+    """Readiness checks database access."""
+    response = Client().get("/health/ready/")
+
+    assert response.status_code == 200
+    assert response.json()["database"] == "available"
+
+
+@pytest.mark.django_db
+def test_sensor_event_direct_save_populates_payload_hash() -> None:
+    """Directly-created sensor events still receive an idempotency hash."""
+    event = WildFiDecodedSensorEvent.from_dealiot_event(
+        {
+            "device_id": "wildfi-17",
+            "timestamp": "2026-05-24T12:30:00Z",
+            "payload": {"sensor_type": "temperature", "value": 18.5},
+        },
+    )
+    event.payload_hash = ""
+
+    event.save()
+
+    assert event.payload_hash
