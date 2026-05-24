@@ -6,11 +6,17 @@ from datetime import UTC, datetime
 import hashlib
 import json
 from typing import Any, ClassVar
+from uuid import UUID
 
 from django.db import models
 from django.db.models import F
 from django.utils.dateparse import parse_datetime
 from uuid_utils import uuid7
+
+
+def uuid7_value() -> UUID:
+    """Return a UUIDv7 value compatible with Django UUIDField."""
+    return UUID(str(uuid7()))
 
 
 def _parse_event_datetime(value: Any, field_name: str) -> datetime:
@@ -68,7 +74,7 @@ class Sensor(models.Model):
 
     sensor_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     sensor_vendor = models.CharField(
@@ -121,7 +127,7 @@ class SensorObservedObject(models.Model):
 
     sensor_observed_object_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     sensor_observed_object_object_id = models.UUIDField(
@@ -169,7 +175,7 @@ class SensorData(models.Model):
 
     sensor_data_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     sensor_data_sensor = models.ForeignKey(
@@ -201,7 +207,7 @@ class WildFiDecodedSensorEvent(models.Model):
 
     wildfi_decoded_sensor_event_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     wildfi_device_id = models.CharField(max_length=128, db_index=True)
@@ -331,7 +337,7 @@ class SensorDataObservedObject(models.Model):
 
     sensor_data_observed_object_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     sensor_data_observed_object_sensor = models.ForeignKey(

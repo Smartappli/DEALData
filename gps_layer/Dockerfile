@@ -32,7 +32,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY ./ ${APP_HOME}
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Stage 2: Lightweight runtime image
 FROM python:3.14-slim-trixie AS runtime
@@ -58,7 +58,9 @@ RUN useradd -m appuser \
 COPY --from=builder /app /app
 COPY --from=builder /entrypoint.sh /entrypoint.sh
 
-RUN find /app -name "*.pyc" -delete \
+RUN chmod +x /entrypoint.sh \
+    && chown appuser:appuser /entrypoint.sh \
+    && find /app -name "*.pyc" -delete \
     && find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
     && find /app -name "*.git*" -exec rm -rf {} + 2>/dev/null || true
 

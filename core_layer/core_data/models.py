@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 from typing import ClassVar
+from uuid import UUID
 
 from django.conf import settings
 from django.db import models
 from django.core.exceptions import ValidationError
 from uuid_utils import uuid7
+
+
+def uuid7_value() -> UUID:
+    """Return a UUIDv7 value compatible with Django UUIDField."""
+    return UUID(str(uuid7()))
 
 
 class ProjectRole(models.TextChoices):
@@ -26,7 +32,7 @@ class Project(models.Model):
 
     project_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     project_code = models.CharField(
@@ -64,7 +70,7 @@ class ProjectMembership(models.Model):
 
     project_membership_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     project_membership_project = models.ForeignKey(
@@ -178,7 +184,7 @@ class ObservedObject(models.Model):
 
     observed_object_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     observed_object_code = models.CharField(
@@ -206,7 +212,7 @@ class Experiment(models.Model):
 
     experiment_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     experiment_project = models.ForeignKey(
@@ -230,7 +236,7 @@ class ExperimentObservedObject(models.Model):
 
     experiment_observed_object_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     experiment_observed_object_experiment = models.ForeignKey(

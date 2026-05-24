@@ -6,11 +6,17 @@ from datetime import UTC, datetime
 import hashlib
 import json
 from typing import Any, ClassVar
+from uuid import UUID
 
 from django.db import models
 from django.db.models import F
 from django.utils.dateparse import parse_datetime
 from uuid_utils import uuid7
+
+
+def uuid7_value() -> UUID:
+    """Return a UUIDv7 value compatible with Django UUIDField."""
+    return UUID(str(uuid7()))
 
 
 def _parse_event_datetime(value: Any, field_name: str) -> datetime:
@@ -88,7 +94,7 @@ class GPSSensor(models.Model):
 
     gps_sensors_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     gps_sensors_code = models.CharField(
@@ -141,7 +147,7 @@ class ObservedObjectGPSSensor(models.Model):
 
     observed_object_gps_sensors_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     observed_object_gps_sensor_observed_object_id = models.UUIDField(
@@ -189,7 +195,7 @@ class GPSRawData(models.Model):
 
     gps_raw_data_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     gps_raw_data_sensors_code = models.CharField(max_length=64)
@@ -252,7 +258,7 @@ class WildFiGPSFix(models.Model):
 
     wildfi_gps_fix_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     wildfi_device_id = models.CharField(max_length=128, db_index=True)
@@ -420,7 +426,7 @@ class ProcessedGPSDataObservedObject(models.Model):
 
     processed_gps_data_observed_object_id = models.UUIDField(
         primary_key=True,
-        default=uuid7,
+        default=uuid7_value,
         editable=False,
     )
     processed_gps_data_sensors = models.ForeignKey(

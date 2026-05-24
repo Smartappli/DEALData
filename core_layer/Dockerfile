@@ -24,9 +24,11 @@ COPY ./ ${APP_HOME}
 
 COPY entrypoint.sh /entrypoint.sh
 
-RUN chmod +x ./entrypoint.sh \
+RUN chmod +x /entrypoint.sh \
     && useradd -m appuser \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app /entrypoint.sh
+
+USER appuser
 
 # Expose the port
 EXPOSE 7000

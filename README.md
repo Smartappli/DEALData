@@ -31,3 +31,31 @@ cd core_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\pyt
 cd ..\gps_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=gps.settings -q
 cd ..\sensor_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=sensor.settings -q
 ```
+
+## Execution avec PostgreSQL
+
+L'environnement Docker local demarre les trois services avec une base
+PostgreSQL dediee par couche:
+
+```powershell
+docker compose up --build
+```
+
+Endpoints utiles:
+
+- `GET http://localhost:7000/health/live/`
+- `POST http://localhost:7001/api/ingest/wildfi/gps/`
+- `POST http://localhost:7002/api/ingest/wildfi/sensor/`
+
+Les endpoints d'ingestion acceptent le header
+`X-DEALDATA-INGEST-TOKEN` quand `DEALDATA_INGEST_TOKEN` est defini.
+
+Pour une execution production, renseigner les variables de `.env.example`,
+puis lancer avec l'override:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+```
+
+En production, `DJANGO_DEBUG=false`, `DJANGO_SECRET_KEY`,
+`DJANGO_ALLOWED_HOSTS` et les variables PostgreSQL sont obligatoires.
