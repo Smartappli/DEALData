@@ -54,8 +54,36 @@ jobs:
           # This will handover control about PR rejection to the GitHub side
           max-allowed-issues: 2147483647
 
+      - name: Normalize SARIF run categories for GitHub upload
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          source = Path("results.sarif")
+          target = Path("results.github.sarif")
+          data = json.loads(source.read_text(encoding="utf-8"))
+          seen = {}
+
+          def slug(value: str) -> str:
+              value = re.sub(r"[^A-Za-z0-9_.-]+", "-", value).strip("-")
+              return value or "run"
+
+          for index, run in enumerate(data.get("runs", []), start=1):
+              automation = run.setdefault("automationDetails", {})
+              tool = run.get("tool", {}).get("driver", {})
+              base = automation.get("id") or tool.get("name") or f"run-{index}"
+              base = slug(str(base))
+              seen[base] = seen.get(base, 0) + 1
+              suffix = "" if seen[base] == 1 else f"-{seen[base]}"
+              automation["id"] = f"codacy/{base}{suffix}"
+
+          target.write_text(json.dumps(data, indent=2), encoding="utf-8")
+          PY
+
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: results.sarif
+          sarif_file: results.github.sarif
