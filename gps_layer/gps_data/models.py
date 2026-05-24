@@ -71,10 +71,9 @@ class ObservedObjectGPSSensor(models.Model):
         default=uuid7,
         editable=False,
     )
-    observed_object_gps_sensor_observed_object = models.ForeignKey(
-        "core_data.ObservedObject",
-        on_delete=models.CASCADE,
-        related_name="observed_object_link",
+    observed_object_gps_sensor_observed_object_id = models.UUIDField(
+        verbose_name="Observed Object ID",
+        help_text="UUID of the observed object managed by the core layer.",
     )
     observed_object_gps_sensor_gps_sensor = models.ForeignKey(
         GPSSensor,
@@ -94,13 +93,16 @@ class ObservedObjectGPSSensor(models.Model):
 
         constraints: ClassVar[list[models.BaseConstraint]] = [
             models.CheckConstraint(
-                condition=F("observed_object_start_time")
-                <= F("observed_object_end_time"),
+                condition=models.Q(
+                    observed_object_start_time__lte=F(
+                        "observed_object_end_time",
+                    ),
+                ),
                 name="ck_timestamp_start_before_end",
             ),
             models.UniqueConstraint(
                 fields=[
-                    "observed_object_gps_sensor_observed_object",
+                    "observed_object_gps_sensor_observed_object_id",
                     "observed_object_gps_sensor_gps_sensor",
                     "observed_object_start_time",
                 ],
@@ -185,10 +187,9 @@ class ProcessedGPSDataObservedObject(models.Model):
         on_delete=models.CASCADE,
         related_name="gps_sensor_link2",
     )
-    processed_gps_data_observed_object = models.ForeignKey(
-        "core_data.ObservedObject",
-        on_delete=models.CASCADE,
-        related_name="observed_object_link2",
+    processed_gps_data_observed_object_uuid = models.UUIDField(
+        verbose_name="Observed Object ID",
+        help_text="UUID of the observed object managed by the core layer.",
     )
     processed_gps_data_observed_object_acquisition_time = models.DateTimeField()
     processed_gps_data_observed_object_longitude = models.FloatField()

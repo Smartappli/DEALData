@@ -219,3 +219,50 @@ class Experiment(models.Model):
         through="ExperimentObservedObject",
         related_name="experiment_observed_objects",
     )
+
+    def __str__(self) -> str:
+        """Return a readable experiment identifier."""
+        return str(self.experiment_id)
+
+
+class ExperimentObservedObject(models.Model):
+    """Link an experiment to an observed object."""
+
+    experiment_observed_object_id = models.UUIDField(
+        primary_key=True,
+        default=uuid7,
+        editable=False,
+    )
+    experiment_observed_object_experiment = models.ForeignKey(
+        Experiment,
+        on_delete=models.CASCADE,
+        related_name="observed_object_links",
+    )
+    experiment_observed_object_observed_object = models.ForeignKey(
+        ObservedObject,
+        on_delete=models.CASCADE,
+        related_name="experiment_links",
+    )
+    experiment_observed_object_created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        """Model metadata for experiment observed-object links."""
+
+        constraints: ClassVar[list[models.UniqueConstraint]] = [
+            models.UniqueConstraint(
+                fields=[
+                    "experiment_observed_object_experiment",
+                    "experiment_observed_object_observed_object",
+                ],
+                name="uq_experiment_observed_object",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return a readable link representation."""
+        return (
+            f"{self.experiment_observed_object_experiment_id} - "
+            f"{self.experiment_observed_object_observed_object_id}"
+        )

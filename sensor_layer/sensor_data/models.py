@@ -8,8 +8,6 @@ from django.db import models
 from django.db.models import F
 from uuid_utils import uuid7
 
-from research.core_layer.core_data.models import ObservedObject
-
 
 class Sensor(models.Model):
     """Physical sensor metadata."""
@@ -72,10 +70,9 @@ class SensorObservedObject(models.Model):
         default=uuid7,
         editable=False,
     )
-    sensor_observed_object_object = models.ForeignKey(
-        ObservedObject,
-        on_delete=models.CASCADE,
-        related_name="sensor_observed_object_object",
+    sensor_observed_object_object_id = models.UUIDField(
+        verbose_name="Observed Object ID",
+        help_text="UUID of the observed object managed by the core layer.",
     )
     sensor_observed_object_sensor = models.ForeignKey(
         Sensor,
@@ -99,8 +96,11 @@ class SensorObservedObject(models.Model):
 
         constraints: ClassVar[list[models.BaseConstraint]] = [
             models.CheckConstraint(
-                condition=F("sensor_observed_object_end_time")
-                >= F("sensor_observed_object_start_time"),
+                condition=models.Q(
+                    sensor_observed_object_end_time__gte=F(
+                        "sensor_observed_object_start_time",
+                    ),
+                ),
                 name="soo_end_time_gte_start_time",
             ),
         ]
@@ -155,10 +155,9 @@ class SensorDataObservedObject(models.Model):
         on_delete=models.CASCADE,
         related_name="sensor_data_observed_object_sensor",
     )
-    sensor_data_observed_object_object = models.ForeignKey(
-        ObservedObject,
-        on_delete=models.CASCADE,
-        related_name="sensor_data_observed_object_object",
+    sensor_data_observed_object_object_id = models.UUIDField(
+        verbose_name="Observed Object ID",
+        help_text="UUID of the observed object managed by the core layer.",
     )
     sensor_data_observed_object_acquisition_time = models.DateTimeField()
     sensor_data_observed_object_value = models.JSONField(
