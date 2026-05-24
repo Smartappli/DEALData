@@ -169,6 +169,76 @@ def test_wildfi_gps_batch_ingest_accepts_array_body() -> None:
 
 
 @pytest.mark.django_db
+def test_wildfi_gps_list_filters_by_device_and_time() -> None:
+    """GPS list endpoint filters and paginates stored events."""
+    client = APIClient()
+    first = {
+        "event_id": "gps-list-1",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 50.6333,
+        "longitude": 5.5667,
+        "payload": {"fix": 3},
+    }
+    second = {
+        "event_id": "gps-list-2",
+        "device_id": "wildfi-18",
+        "timestamp": "2026-05-24T13:30:00Z",
+        "latitude": 51.0,
+        "longitude": 5.0,
+        "payload": {"fix": 3},
+    }
+    client.post("/api/ingest/wildfi/gps/", first, format="json")
+    client.post("/api/ingest/wildfi/gps/", second, format="json")
+
+    response = client.get(
+        "/api/wildfi/gps/",
+        {
+            "device_id": "wildfi-17",
+            "from": "2026-05-24T12:00:00Z",
+            "to": "2026-05-24T13:00:00Z",
+            "limit": "10",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.data["count"] == 1
+    assert response.data["results"][0]["device_id"] == "wildfi-17"
+    assert response.data["results"][0]["geojson"] == {
+        "type": "Point",
+        "coordinates": [5.5667, 50.6333],
+    }
+
+
+def test_wildfi_gps_list_rejects_invalid_datetime() -> None:
+    """GPS list endpoint validates date filters."""
+    response = APIClient().get("/api/wildfi/gps/", {"from": "not-a-date"})
+
+    assert response.status_code == 400
+    assert "from" in response.data["detail"]
+
+
+@pytest.mark.django_db
+def test_gps_metrics_exposes_prometheus_counts() -> None:
+    """Metrics endpoint exposes stored GPS event counters."""
+    client = APIClient()
+    event = {
+        "event_id": "gps-metric-1",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 50.6333,
+        "longitude": 5.5667,
+        "payload": {"fix": 3},
+    }
+    client.post("/api/ingest/wildfi/gps/", event, format="json")
+
+    response = Client().get("/metrics/")
+
+    assert response.status_code == 200
+    assert "dealdata_gps_wildfi_events_total 1" in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_health_ready_reports_database_available() -> None:
     """Readiness checks database access."""
     response = Client().get("/health/ready/")
