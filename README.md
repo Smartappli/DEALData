@@ -1,25 +1,61 @@
 # DEALData
 
 DEALData regroupe les services Django qui portent les donnees metier de la
-plateforme DEAL:
+plateforme DEAL.
 
-- `core_layer`: projets, membres, objets observes et experiences.
-- `gps_layer`: capteurs GPS, donnees GPS brutes, positions traitees et
-  evenements WildFi `raw.gps` decodes par DEALIoT.
-- `sensor_layer`: capteurs generiques, mesures associees et evenements WildFi
-  `raw.sensor` decodes par DEALIoT.
+| Couche | Port local | Role |
+| --- | ---: | --- |
+| `core_layer` | `7000` | Projets, membres, objets observes et experiences. |
+| `gps_layer` | `7001` | Capteurs GPS, donnees GPS brutes, positions traitees et evenements WildFi `raw.gps`. |
+| `sensor_layer` | `7002` | Capteurs generiques, mesures associees et evenements WildFi `raw.sensor`. |
 
 Le depot est prevu comme fournisseur de donnees pour `Smartappli/DEALIoT` et
 comme ensemble de modules deployables derriere `Smartappli/DEALHost`.
 
+## Architecture
+
+Le depot contient trois services Django deployables separement. Chaque couche
+utilise sa propre base PostgreSQL en Docker:
+
+- `core-db` pour `core_layer`.
+- `gps-db` pour `gps_layer`.
+- `sensor-db` pour `sensor_layer`.
+
+Les couches GPS et Sensor ne declarent pas de foreign keys SQL vers la base
+Core. Les liens vers les objets observes sont conserves sous forme d'UUID
+(`observed_object_id`) geres par `core_layer`.
+
 Les donnees WildFi arrivent via les contrats DEALIoT suivants:
 
-- `raw.gps` vers `gps_data.WildFiGPSFix`
-- `raw.sensor` vers `sensor_data.WildFiDecodedSensorEvent`
+- `raw.gps` vers `gps_data.WildFiGPSFix`.
+- `raw.sensor` vers `sensor_data.WildFiDecodedSensorEvent`.
 
 Ces tables conservent l'enveloppe DEALIoT (`device_id`, `timestamp`,
-`source`, `mqtt_topic`, `ingested_at`) avec le payload decode et les
-metadonnees de transport.
+`source`, `mqtt_topic`, `ingested_at`) avec le payload decode, les metadonnees
+de transport et les champs utiles a l'idempotence (`event_id`, `payload_hash`).
+
+## Prerequis
+
+- Python `>=3.14`.
+- Docker et Docker Compose pour l'environnement PostgreSQL local.
+- PowerShell pour les commandes ci-dessous.
+
+## Installation locale
+
+Depuis la racine du depot:
+
+```powershell
+py -3.14 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r core_layer\requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r gps_layer\requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r sensor_layer\requirements.txt
+.\.venv\Scripts\python.exe -m pip install pytest pytest-django pytest-cov
+```
+
+Le fichier `pyproject.toml` centralise aussi les versions ciblees, mais
+l'installation editable du depot n'est pas active tant que le packaging
+multi-couches n'est pas configure explicitement.
 
 ## Verification locale
 
@@ -30,7 +66,20 @@ Depuis la racine du depot, avec les dependances installees dans `.venv`:
 cd core_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=core.settings -q
 cd ..\gps_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=gps.settings -q
 cd ..\sensor_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=sensor.settings -q
+cd ..
 ```
+
+Pour appliquer les migrations localement dans une couche:
+
+```powershell
+cd core_layer
+..\.venv\Scripts\python.exe manage.py migrate
+..\.venv\Scripts\python.exe manage.py createsuperuser
+cd ..
+```
+
+Adapter le dossier et le module settings pour `gps_layer` ou `sensor_layer` si
+necessaire.
 
 ## Execution avec PostgreSQL
 
@@ -41,28 +90,127 @@ PostgreSQL dediee par couche:
 docker compose up --build
 ```
 
-Endpoints utiles:
+Endpoints de sante et d'observabilite:
 
 - `GET http://localhost:7000/health/live/`
 - `GET http://localhost:7000/health/ready/`
+- `GET http://localhost:7000/metrics/`
+- `GET http://localhost:7001/health/live/`
 - `GET http://localhost:7001/health/ready/`
+- `GET http://localhost:7001/metrics/`
+- `GET http://localhost:7002/health/live/`
 - `GET http://localhost:7002/health/ready/`
+- `GET http://localhost:7002/metrics/`
+
+Endpoints WildFi:
+
+- `GET http://localhost:7001/api/wildfi/gps/`
 - `POST http://localhost:7001/api/ingest/wildfi/gps/`
 - `POST http://localhost:7001/api/ingest/wildfi/gps/batch/`
+- `GET http://localhost:7002/api/wildfi/sensor/`
 - `POST http://localhost:7002/api/ingest/wildfi/sensor/`
 - `POST http://localhost:7002/api/ingest/wildfi/sensor/batch/`
 
 Les endpoints d'ingestion acceptent le header
 `X-DEALDATA-INGEST-TOKEN` quand `DEALDATA_INGEST_TOKEN` est defini.
+En Docker local, la valeur par defaut est `dev-ingest-token`.
+
+## Contrats d'ingestion
+
+Exemple minimal `raw.gps`:
+
+```json
+{
+  "event_id": "gps-event-1",
+  "device_id": "wildfi-17",
+  "timestamp": "2026-05-24T12:30:00Z",
+  "source": "wildfi-mqtt",
+  "mqtt_topic": "wildfi/wildfi-17/gps",
+  "latitude": 50.6333,
+  "longitude": 5.5667,
+  "payload": {
+    "fix": 3,
+    "hdop": 0.9
+  }
+}
+```
+
+Exemple minimal `raw.sensor`:
+
+```json
+{
+  "event_id": "sensor-event-1",
+  "device_id": "wildfi-17",
+  "timestamp": "2026-05-24T12:30:00Z",
+  "source": "wildfi-mqtt",
+  "mqtt_topic": "wildfi/wildfi-17/sensor",
+  "payload": {
+    "sensor_type": "temperature",
+    "value": 18.5,
+    "unit": "C"
+  }
+}
+```
+
 Les endpoints batch acceptent soit un tableau JSON, soit un objet
 `{"events": [...]}`.
 
-Pour une execution production, renseigner les variables de `.env.example`,
-puis lancer avec l'override:
+Codes HTTP attendus:
+
+- `201 Created`: evenement insere.
+- `200 OK`: evenement deja connu ou batch traite.
+- `400 Bad Request`: payload invalide.
+- `403 Forbidden`: token d'ingestion invalide.
+
+L'ingestion est idempotente. Si `event_id` est fourni, l'unicite est controlee
+par couple `source` + `event_id`. Sinon, un `payload_hash` stable est calcule
+sur le contenu de l'evenement.
+
+## Lecture des evenements
+
+Les endpoints de lecture acceptent des filtres par device et intervalle
+temporel:
+
+```powershell
+Invoke-RestMethod "http://localhost:7001/api/wildfi/gps/?device_id=wildfi-17&from=2026-05-24T12:00:00Z&to=2026-05-24T13:00:00Z&limit=10"
+Invoke-RestMethod "http://localhost:7002/api/wildfi/sensor/?device_id=wildfi-17&sensor_type=temperature&from=2026-05-24T12:00:00Z&to=2026-05-24T13:00:00Z&limit=10"
+```
+
+## Production
+
+Renseigner les variables de `.env.example`, puis lancer avec l'override:
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
 ```
 
-En production, `DJANGO_DEBUG=false`, `DJANGO_SECRET_KEY`,
-`DJANGO_ALLOWED_HOSTS` et les variables PostgreSQL sont obligatoires.
+Variables obligatoires en production:
+
+- `CORE_DJANGO_SECRET_KEY`, `GPS_DJANGO_SECRET_KEY`,
+  `SENSOR_DJANGO_SECRET_KEY`.
+- `CORE_DJANGO_ALLOWED_HOSTS`, `GPS_DJANGO_ALLOWED_HOSTS`,
+  `SENSOR_DJANGO_ALLOWED_HOSTS`.
+- `CORE_DATABASE_HOST`, `GPS_DATABASE_HOST`, `SENSOR_DATABASE_HOST`.
+- `CORE_DATABASE_USER`, `GPS_DATABASE_USER`, `SENSOR_DATABASE_USER`.
+- `CORE_DATABASE_PASSWORD`, `GPS_DATABASE_PASSWORD`,
+  `SENSOR_DATABASE_PASSWORD`.
+- `DEALDATA_INGEST_TOKEN` pour les endpoints d'ingestion GPS et Sensor.
+
+Variables optionnelles ou avec valeur par defaut:
+
+- `CORE_DATABASE_NAME`, `GPS_DATABASE_NAME`, `SENSOR_DATABASE_NAME`.
+- `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_TRACES_SAMPLE_RATE`,
+  `SENTRY_SEND_DEFAULT_PII`.
+
+En production, `DJANGO_DEBUG=false` est impose par `docker-compose.prod.yml`.
+
+## Notes d'exploitation
+
+- Les metriques exposees par `/metrics/` utilisent un format compatible
+  Prometheus.
+- Les migrations doivent etre appliquees par couche avant ouverture du trafic.
+- Les secrets de `.env.example` sont des exemples et ne doivent pas etre
+  reutilises en production.
+- `docker-compose.dev.yml` et `docker-compose.staging.yml` sont actuellement
+  vides. Ils ne modifient donc pas le comportement tant qu'ils ne sont pas
+  completes.
