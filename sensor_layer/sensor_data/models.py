@@ -2,11 +2,52 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from datetime import UTC, datetime
+from typing import Any, ClassVar
 
 from django.db import models
 from django.db.models import F
+from django.utils.dateparse import parse_datetime
 from uuid_utils import uuid7
+
+
+def _parse_event_datetime(value: Any, field_name: str) -> datetime:
+    """Parse an ISO datetime from a DEALIoT event."""
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        parsed = parse_datetime(value)
+    else:
+        parsed = None
+
+    if parsed is None:
+        message = f"DEALIoT event field '{field_name}' must be an ISO datetime."
+        raise ValueError(message)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def _parse_optional_event_datetime(value: Any, field_name: str) -> datetime | None:
+    """Parse an optional ISO datetime from a DEALIoT event."""
+    if value in (None, ""):
+        return None
+    return _parse_event_datetime(value, field_name)
+
+
+def _payload_dict(value: Any) -> dict[str, Any]:
+    """Keep decoded payloads queryable while preserving scalar values."""
+    if isinstance(value, dict):
+        return value
+    if value in (None, ""):
+        return {}
+    return {"value": value}
+
+
+def _event_metadata(event: dict[str, Any]) -> dict[str, Any]:
+    """Keep transport metadata from MQTT/Kafka without shaping it too early."""
+    metadata_fields = ("qos", "retain", "partition", "offset", "key")
+    return {field: event[field] for field in metadata_fields if field in event}
 
 
 class Sensor(models.Model):
@@ -140,6 +181,89 @@ class SensorData(models.Model):
     def __str__(self) -> str:
         """Return the sensor data value as a string."""
         return str(self.sensor_data_value)
+
+
+class WildFiDecodedSensorEvent(models.Model):
+    """Decoded WildFi sensor event received from DEALIoT."""
+
+    wildfi_decoded_sensor_event_id = models.UUIDField(
+        primary_key=True,
+        default=uuid7,
+        editable=False,
+    )
+    wildfi_device_id = models.CharField(max_length=128, db_index=True)
+    observed_object_id = models.UUIDField(
+        null=True,
+        blank=True,
+        verbose_name="Observed Object ID",
+        help_text="UUID of the observed object managed by the core layer.",
+    )
+    dealiot_topic = models.CharField(
+        max_length=64,
+        default="raw.sensor",
+        db_index=True,
+    )
+    source = models.CharField(max_length=64, default="wildfi-mqtt")
+    mqtt_topic = models.CharField(max_length=255, blank=True)
+    acquisition_time = models.DateTimeField(db_index=True)
+    ingested_at = models.DateTimeField(null=True, blank=True)
+    sensor_type = models.CharField(max_length=64, blank=True)
+    payload = models.JSONField(default=dict, blank=True)
+    message_metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Model metadata for decoded WildFi sensor events."""
+
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["wildfi_device_id", "acquisition_time"]),
+            models.Index(fields=["dealiot_topic", "acquisition_time"]),
+            models.Index(fields=["sensor_type", "acquisition_time"]),
+        ]
+
+    @classmethod
+    def from_dealiot_event(
+        cls,
+        event: dict[str, Any],
+        *,
+        topic: str = "raw.sensor",
+    ) -> "WildFiDecodedSensorEvent":
+        """Build a sensor event from the decoded DEALIoT `raw.sensor` contract."""
+        payload = _payload_dict(event.get("payload"))
+        device_id = event.get("device_id") or payload.get("device_id")
+        if not device_id:
+            message = "DEALIoT sensor event must contain 'device_id'."
+            raise ValueError(message)
+
+        sensor_type = (
+            event.get("sensor_type")
+            or payload.get("sensor_type")
+            or payload.get("type")
+            or ""
+        )
+
+        return cls(
+            wildfi_device_id=str(device_id),
+            dealiot_topic=str(event.get("topic") or topic),
+            source=str(event.get("source") or "wildfi-mqtt"),
+            mqtt_topic=str(event.get("mqtt_topic") or ""),
+            acquisition_time=_parse_event_datetime(
+                event.get("timestamp"),
+                "timestamp",
+            ),
+            ingested_at=_parse_optional_event_datetime(
+                event.get("ingested_at"),
+                "ingested_at",
+            ),
+            sensor_type=str(sensor_type),
+            payload=payload,
+            message_metadata=_event_metadata(event),
+        )
+
+    def __str__(self) -> str:
+        """Return a readable device and timestamp pair."""
+        return f"{self.wildfi_device_id} @ {self.acquisition_time.isoformat()}"
 
 
 class SensorDataObservedObject(models.Model):

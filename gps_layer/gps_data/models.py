@@ -2,11 +2,72 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from datetime import UTC, datetime
+from typing import Any, ClassVar
 
 from django.db import models
 from django.db.models import F
+from django.utils.dateparse import parse_datetime
 from uuid_utils import uuid7
+
+
+def _parse_event_datetime(value: Any, field_name: str) -> datetime:
+    """Parse an ISO datetime from a DEALIoT event."""
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        parsed = parse_datetime(value)
+    else:
+        parsed = None
+
+    if parsed is None:
+        message = f"DEALIoT event field '{field_name}' must be an ISO datetime."
+        raise ValueError(message)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def _parse_optional_event_datetime(value: Any, field_name: str) -> datetime | None:
+    """Parse an optional ISO datetime from a DEALIoT event."""
+    if value in (None, ""):
+        return None
+    return _parse_event_datetime(value, field_name)
+
+
+def _payload_dict(value: Any) -> dict[str, Any]:
+    """Keep decoded payloads queryable while preserving scalar values."""
+    if isinstance(value, dict):
+        return value
+    if value in (None, ""):
+        return {}
+    return {"value": value}
+
+
+def _event_float(
+    event: dict[str, Any],
+    payload: dict[str, Any],
+    *field_names: str,
+    required: bool = False,
+) -> float | None:
+    """Extract a float from top-level DEALIoT fields or decoded payload."""
+    for field_name in field_names:
+        value = event.get(field_name)
+        if value in (None, ""):
+            value = payload.get(field_name)
+        if value not in (None, ""):
+            return float(value)
+    if required:
+        names = ", ".join(field_names)
+        message = f"DEALIoT event must contain one of: {names}."
+        raise ValueError(message)
+    return None
+
+
+def _event_metadata(event: dict[str, Any]) -> dict[str, Any]:
+    """Keep transport metadata from MQTT/Kafka without shaping it too early."""
+    metadata_fields = ("qos", "retain", "partition", "offset", "key")
+    return {field: event[field] for field in metadata_fields if field in event}
 
 
 class GPSSensor(models.Model):
@@ -171,6 +232,125 @@ class GPSRawData(models.Model):
         """Model metadata for raw GPS data."""
 
         db_table = "gps_raw_data"
+
+
+class WildFiGPSFix(models.Model):
+    """Decoded WildFi GPS event received from DEALIoT."""
+
+    wildfi_gps_fix_id = models.UUIDField(
+        primary_key=True,
+        default=uuid7,
+        editable=False,
+    )
+    wildfi_device_id = models.CharField(max_length=128, db_index=True)
+    observed_object_id = models.UUIDField(
+        null=True,
+        blank=True,
+        verbose_name="Observed Object ID",
+        help_text="UUID of the observed object managed by the core layer.",
+    )
+    dealiot_topic = models.CharField(
+        max_length=64,
+        default="raw.gps",
+        db_index=True,
+    )
+    source = models.CharField(max_length=64, default="wildfi-mqtt")
+    mqtt_topic = models.CharField(max_length=255, blank=True)
+    acquisition_time = models.DateTimeField(db_index=True)
+    ingested_at = models.DateTimeField(null=True, blank=True)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    altitude = models.FloatField(null=True, blank=True)
+    speed = models.FloatField(null=True, blank=True)
+    heading = models.FloatField(null=True, blank=True)
+    payload = models.JSONField(default=dict, blank=True)
+    message_metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Model metadata for decoded WildFi GPS fixes."""
+
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(latitude__gte=-90.0)
+                    & models.Q(latitude__lte=90.0)
+                ),
+                name="ck_wildfi_gps_latitude_range",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(longitude__gte=-180.0)
+                    & models.Q(longitude__lte=180.0)
+                ),
+                name="ck_wildfi_gps_longitude_range",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["wildfi_device_id", "acquisition_time"]),
+            models.Index(fields=["dealiot_topic", "acquisition_time"]),
+        ]
+
+    @classmethod
+    def from_dealiot_event(
+        cls,
+        event: dict[str, Any],
+        *,
+        topic: str = "raw.gps",
+    ) -> "WildFiGPSFix":
+        """Build a GPS fix from the decoded DEALIoT `raw.gps` contract."""
+        payload = _payload_dict(event.get("payload"))
+        device_id = event.get("device_id") or payload.get("device_id")
+        if not device_id:
+            message = "DEALIoT GPS event must contain 'device_id'."
+            raise ValueError(message)
+
+        return cls(
+            wildfi_device_id=str(device_id),
+            dealiot_topic=str(event.get("topic") or topic),
+            source=str(event.get("source") or "wildfi-mqtt"),
+            mqtt_topic=str(event.get("mqtt_topic") or ""),
+            acquisition_time=_parse_event_datetime(
+                event.get("timestamp"),
+                "timestamp",
+            ),
+            ingested_at=_parse_optional_event_datetime(
+                event.get("ingested_at"),
+                "ingested_at",
+            ),
+            latitude=_event_float(
+                event,
+                payload,
+                "latitude",
+                "lat",
+                required=True,
+            ),
+            longitude=_event_float(
+                event,
+                payload,
+                "longitude",
+                "lon",
+                "lng",
+                required=True,
+            ),
+            altitude=_event_float(event, payload, "altitude", "alt"),
+            speed=_event_float(event, payload, "speed"),
+            heading=_event_float(event, payload, "heading", "course"),
+            payload=payload,
+            message_metadata=_event_metadata(event),
+        )
+
+    def as_geojson(self) -> dict[str, Any]:
+        """Return the GPS fix as a GeoJSON point."""
+        return {
+            "type": "Point",
+            "coordinates": [self.longitude, self.latitude],
+        }
+
+    def __str__(self) -> str:
+        """Return a readable device and timestamp pair."""
+        return f"{self.wildfi_device_id} @ {self.acquisition_time.isoformat()}"
 
 
 class ProcessedGPSDataObservedObject(models.Model):
