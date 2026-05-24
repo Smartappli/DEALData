@@ -174,6 +174,68 @@ def test_wildfi_sensor_batch_ingest_accepts_array_body() -> None:
 
 
 @pytest.mark.django_db
+def test_wildfi_sensor_list_filters_by_device_type_and_time() -> None:
+    """Sensor list endpoint filters and paginates stored events."""
+    client = APIClient()
+    first = {
+        "event_id": "sensor-list-1",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": {"sensor_type": "temperature", "value": 18.5},
+    }
+    second = {
+        "event_id": "sensor-list-2",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T13:30:00Z",
+        "payload": {"sensor_type": "humidity", "value": 62},
+    }
+    client.post("/api/ingest/wildfi/sensor/", first, format="json")
+    client.post("/api/ingest/wildfi/sensor/", second, format="json")
+
+    response = client.get(
+        "/api/wildfi/sensor/",
+        {
+            "device_id": "wildfi-17",
+            "sensor_type": "temperature",
+            "from": "2026-05-24T12:00:00Z",
+            "to": "2026-05-24T13:00:00Z",
+            "limit": "10",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.data["count"] == 1
+    assert response.data["results"][0]["sensor_type"] == "temperature"
+    assert response.data["results"][0]["payload"]["value"] == 18.5
+
+
+def test_wildfi_sensor_list_rejects_invalid_datetime() -> None:
+    """Sensor list endpoint validates date filters."""
+    response = APIClient().get("/api/wildfi/sensor/", {"from": "not-a-date"})
+
+    assert response.status_code == 400
+    assert "from" in response.data["detail"]
+
+
+@pytest.mark.django_db
+def test_sensor_metrics_exposes_prometheus_counts() -> None:
+    """Metrics endpoint exposes stored sensor event counters."""
+    client = APIClient()
+    event = {
+        "event_id": "sensor-metric-1",
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": {"sensor_type": "temperature", "value": 18.5},
+    }
+    client.post("/api/ingest/wildfi/sensor/", event, format="json")
+
+    response = Client().get("/metrics/")
+
+    assert response.status_code == 200
+    assert "dealdata_sensor_wildfi_events_total 1" in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_health_ready_reports_database_available() -> None:
     """Readiness checks database access."""
     response = Client().get("/health/ready/")
