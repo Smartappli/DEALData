@@ -1,15 +1,15 @@
 #!/bin/sh
 set -e
 
-echo "📦 DB Migration..."
-python manage.py makemigrations --noinput
-python manage.py migrate --noinput
+if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
+  echo "Applying database migrations..."
+  python manage.py migrate --noinput
+fi
 
-echo "📦 Collecting static files..."
-python manage.py collectstatic --noinput
+if [ "${RUN_COLLECTSTATIC:-1}" = "1" ]; then
+  echo "Collecting static files..."
+  python manage.py collectstatic --noinput
+fi
 
-echo "📦 Create cache table..."
-python manage.py createcachetable
-
-echo "🚀 Starting Django application"
+echo "Starting Django application..."
 exec "$@"
