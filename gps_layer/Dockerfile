@@ -21,8 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy and install Python dependencies
-COPY ./requirements.txt ./
-RUN pip install --prefix=/install --no-cache-dir --only-binary :all: -r requirements.txt \
+COPY ./requirements.lock ./
+RUN pip install --prefix=/install --no-cache-dir --require-hashes --only-binary :all: -r requirements.lock \
  && find /install -name "*.pyc" -delete \
  && find /install -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
