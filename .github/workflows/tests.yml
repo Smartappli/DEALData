@@ -215,7 +215,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.layer }}
           path: coverage-${{ matrix.layer }}.xml
