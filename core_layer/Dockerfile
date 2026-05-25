@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
-COPY ./requirements.txt ./
-RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
+COPY ./requirements.lock ./
+RUN pip install --no-cache-dir --require-hashes --only-binary :all: -r requirements.lock
 
 # Copy project code
 COPY ./ ${APP_HOME}
