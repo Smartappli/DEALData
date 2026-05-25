@@ -1,7 +1,14 @@
 """Tests for the gps_data application."""
 
+from io import StringIO
+import json
+import sys
+import types
+from unittest.mock import patch
+
 import pytest
 from gps_data.models import GPSSensor, ProcessedGPSDataObservedObject, WildFiGPSFix
+from django.core.management import call_command
 from django.test import Client
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -104,6 +111,66 @@ def test_wildfi_gps_ingest_accepts_dealiot_metric_aliases() -> None:
     assert gps_fix.altitude == 411.2
     assert gps_fix.speed == 1.8
     assert gps_fix.heading == 84.5
+
+
+@pytest.mark.django_db
+def test_dealiot_kafka_consumer_persists_gps_event() -> None:
+    """The Kafka worker persists one DEALIoT raw.gps message."""
+
+    class FakeKafkaConsumer:
+        instances = []
+
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+            self.polls = 0
+            self.committed = False
+            self.closed = False
+            self.instances.append(self)
+
+        def poll(self, timeout_ms, max_records):
+            del timeout_ms, max_records
+            if self.polls:
+                return {}
+            self.polls += 1
+            event = {
+                "event_id": "gps-event-kafka",
+                "device_id": "WF-004",
+                "timestamp": "2024-01-01T00:00:00+00:00",
+                "latitude": 47.695,
+                "longitude": 9.132,
+                "altitude_m": 411.2,
+            }
+            message = types.SimpleNamespace(
+                value=json.dumps(event).encode("utf-8"),
+                topic="raw.gps",
+                partition=0,
+                offset=10,
+            )
+            return {"raw.gps-0": [message]}
+
+        def commit(self):
+            self.committed = True
+
+        def close(self):
+            self.closed = True
+
+    fake_kafka = types.SimpleNamespace(KafkaConsumer=FakeKafkaConsumer)
+
+    with patch.dict(sys.modules, {"kafka": fake_kafka}):
+        call_command(
+            "consume_dealiot_kafka",
+            "--once",
+            "--bootstrap-servers",
+            "unit:9092",
+            stdout=StringIO(),
+            stderr=StringIO(),
+        )
+
+    gps_fix = WildFiGPSFix.objects.get(event_id="gps-event-kafka")
+    assert gps_fix.altitude == 411.2
+    assert FakeKafkaConsumer.instances[0].committed is True
+    assert FakeKafkaConsumer.instances[0].closed is True
 
 
 @pytest.mark.django_db

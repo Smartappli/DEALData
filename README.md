@@ -223,6 +223,12 @@ Renseigner les variables de `.env.example`, puis lancer avec l'override:
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
 ```
 
+Avec la consommation Kafka DEALIoT:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile dealiot up --build
+```
+
 Variables obligatoires en production:
 
 - `CORE_DJANGO_SECRET_KEY`, `GPS_DJANGO_SECRET_KEY`,

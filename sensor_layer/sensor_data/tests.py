@@ -1,6 +1,13 @@
 """Test module for the sensor data application."""
 
+from io import StringIO
+import json
+import sys
+import types
+from unittest.mock import patch
+
 import pytest
+from django.core.management import call_command
 from django.test import Client
 from rest_framework.test import APIClient
 from sensor_data.models import Sensor, SensorData, WildFiDecodedSensorEvent
@@ -135,6 +142,67 @@ def test_wildfi_sensor_type_prefers_explicit_payload_value() -> None:
 
     assert response.status_code == 201
     assert response.data["sensor_type"] == "temperature"
+
+
+@pytest.mark.django_db
+def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
+    """The Kafka worker persists one DEALIoT raw.sensor message."""
+
+    class FakeKafkaConsumer:
+        instances = []
+
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+            self.polls = 0
+            self.committed = False
+            self.closed = False
+            self.instances.append(self)
+
+        def poll(self, timeout_ms, max_records):
+            del timeout_ms, max_records
+            if self.polls:
+                return {}
+            self.polls += 1
+            event = {
+                "event_id": "sensor-event-kafka",
+                "device_id": "WF-004",
+                "timestamp": "2024-01-01T00:00:00+00:00",
+                "mqtt_topic": "wildfi/tags/WF-004/environment",
+                "payload": {"temperatureInDegCel": 18.7},
+            }
+            message = types.SimpleNamespace(
+                value=json.dumps(event).encode("utf-8"),
+                topic="raw.sensor",
+                partition=0,
+                offset=11,
+            )
+            return {"raw.sensor-0": [message]}
+
+        def commit(self):
+            self.committed = True
+
+        def close(self):
+            self.closed = True
+
+    fake_kafka = types.SimpleNamespace(KafkaConsumer=FakeKafkaConsumer)
+
+    with patch.dict(sys.modules, {"kafka": fake_kafka}):
+        call_command(
+            "consume_dealiot_kafka",
+            "--once",
+            "--bootstrap-servers",
+            "unit:9092",
+            stdout=StringIO(),
+            stderr=StringIO(),
+        )
+
+    sensor_event = WildFiDecodedSensorEvent.objects.get(
+        event_id="sensor-event-kafka",
+    )
+    assert sensor_event.sensor_type == "environment"
+    assert FakeKafkaConsumer.instances[0].committed is True
+    assert FakeKafkaConsumer.instances[0].closed is True
 
 
 @pytest.mark.django_db
