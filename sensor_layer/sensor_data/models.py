@@ -15,9 +15,7 @@ from uuid_utils import uuid7
 
 
 OBSERVED_OBJECT_ID_VERBOSE_NAME = "Observed Object ID"
-OBSERVED_OBJECT_ID_HELP_TEXT = (
-    "UUID of the observed object managed by the core layer."
-)
+OBSERVED_OBJECT_ID_HELP_TEXT = "UUID of the observed object managed by the core layer."
 
 
 def uuid7_value() -> UUID:

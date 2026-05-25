@@ -22,9 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy and install Python dependencies
 COPY ./requirements.txt ./
-RUN pip install --no-cache-dir --upgrade pip \
- && pip install --prefix=/install --no-cache-dir minio boto3 \
- && pip install --prefix=/install --no-cache-dir -r requirements.txt \
+RUN pip install --prefix=/install --no-cache-dir --only-binary :all: -r requirements.txt \
  && find /install -name "*.pyc" -delete \
  && find /install -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 

@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.management.utils import get_random_secret_key
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -60,7 +62,7 @@ DEBUG = env_bool("DJANGO_DEBUG", default=True)
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if DEBUG:
-        SECRET_KEY = "insecure-development-secret-key"
+        SECRET_KEY = get_random_secret_key()
     else:
         message = "DJANGO_SECRET_KEY is required when DJANGO_DEBUG is false."
         raise RuntimeError(message)
