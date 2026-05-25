@@ -12,6 +12,7 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHON_VERSION: "3.14"
 
 jobs:
   sonarqube:
@@ -32,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14.5"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
       - name: Install test dependencies

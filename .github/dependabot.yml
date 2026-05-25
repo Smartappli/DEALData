@@ -5,8 +5,35 @@ updates:
     schedule:
       interval: "daily"
     labels:
-      - "🤖 Dependencies"
-      - "🤖 Dependabot"
+      - "dependencies"
+      - "dependabot"
+      - "python"
+
+  - package-ecosystem: "pip"
+    directory: "/core_layer"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "dependabot"
+      - "python"
+
+  - package-ecosystem: "pip"
+    directory: "/gps_layer"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "dependabot"
+      - "python"
+
+  - package-ecosystem: "pip"
+    directory: "/sensor_layer"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "dependabot"
       - "python"
 
   - package-ecosystem: "docker"
@@ -14,8 +41,8 @@ updates:
     schedule:
       interval: "daily"
     labels:
-      - "🤖 Dependencies"
-      - "🤖 Dependabot"
+      - "dependencies"
+      - "dependabot"
       - "docker"
 
   - package-ecosystem: "docker-compose"
@@ -23,8 +50,8 @@ updates:
     schedule:
       interval: "daily"
     labels:
-      - "🤖 Dependencies"
-      - "🤖 Dependabot"
+      - "dependencies"
+      - "dependabot"
       - "docker-compose"
 
   - package-ecosystem: "github-actions"
@@ -32,6 +59,6 @@ updates:
     schedule:
       interval: "daily"
     labels:
-      - "🤖 Dependencies"
-      - "🤖 Dependabot"
+      - "dependencies"
+      - "dependabot"
       - "github-actions"
