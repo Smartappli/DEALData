@@ -7,7 +7,7 @@ import os
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import close_old_connections
+from django.db import close_old_connections, connection
 from rest_framework import status
 
 from gps_data.ingestion import ingest_dealiot_gps_event
@@ -31,6 +31,12 @@ def _decode_json(value: bytes) -> dict[str, Any] | None:
     except (UnicodeDecodeError, json.JSONDecodeError):
         return None
     return decoded if isinstance(decoded, dict) else None
+
+
+def _close_stale_connections() -> None:
+    """Close stale DB connections without breaking transactional test wrappers."""
+    if not connection.in_atomic_block:
+        close_old_connections()
 
 
 class Command(BaseCommand):
@@ -140,7 +146,7 @@ class Command(BaseCommand):
                             )
                             continue
 
-                        close_old_connections()
+                        _close_stale_connections()
                         body, response_status = ingest_dealiot_gps_event(payload)
                         if response_status == status.HTTP_201_CREATED:
                             inserted += 1
