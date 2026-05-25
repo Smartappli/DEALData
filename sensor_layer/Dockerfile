@@ -15,17 +15,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
-COPY ./requirements.lock ./
+COPY ./sensor_layer/requirements.lock ./
 RUN pip install --no-cache-dir --require-hashes --only-binary :all: -r requirements.lock
 
 # Copy only application files needed at runtime.
-COPY ./manage.py ./manage.py
-COPY ./sensor/*.py ./sensor/
-COPY ./sensor_data/*.py ./sensor_data/
-COPY ./sensor_data/management/*.py ./sensor_data/management/
-COPY ./sensor_data/management/commands/*.py ./sensor_data/management/commands/
-COPY ./sensor_data/migrations/*.py ./sensor_data/migrations/
-COPY ./entrypoint.sh /entrypoint.sh
+COPY ./dealdata_common/*.py ./dealdata_common/
+COPY ./sensor_layer/manage.py ./manage.py
+COPY ./sensor_layer/sensor/*.py ./sensor/
+COPY ./sensor_layer/sensor_data/*.py ./sensor_data/
+COPY ./sensor_layer/sensor_data/management/*.py ./sensor_data/management/
+COPY ./sensor_layer/sensor_data/management/commands/*.py ./sensor_data/management/commands/
+COPY ./sensor_layer/sensor_data/migrations/*.py ./sensor_data/migrations/
+COPY ./sensor_layer/entrypoint.sh /entrypoint.sh
 
 # User non-root
 RUN chmod +x /entrypoint.sh \
