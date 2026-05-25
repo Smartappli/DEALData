@@ -34,6 +34,16 @@ Ces tables conservent l'enveloppe DEALIoT (`device_id`, `timestamp`,
 `source`, `mqtt_topic`, `ingested_at`) avec le payload decode, les metadonnees
 de transport et les champs utiles a l'idempotence (`event_id`, `payload_hash`).
 
+Deux modes d'integration sont supportes:
+
+- Push HTTP depuis un service externe vers les endpoints `/api/ingest/wildfi/...`.
+- Consommation Kafka directe des topics DEALIoT `raw.gps` et `raw.sensor` via les
+  workers Django `consume_dealiot_kafka`.
+
+Le mode Kafka constitue le chainon direct `DEALIoT -> DEALData`: les workers
+lisent les messages JSON produits par DEALIoT et les persistent dans les memes
+chemins d'ingestion idempotents que l'API HTTP.
+
 ## Prerequis
 
 - Python `>=3.14`.
@@ -115,6 +125,22 @@ Les endpoints d'ingestion acceptent le header
 `X-DEALDATA-INGEST-TOKEN` quand `DEALDATA_INGEST_TOKEN` est defini.
 En Docker local, la valeur par defaut est `dev-ingest-token`.
 
+Pour connecter directement DEALData aux topics Kafka DEALIoT:
+
+```powershell
+docker compose --profile dealiot up --build
+```
+
+Ce profil demarre deux workers supplementaires:
+
+- `gps-dealiot-consumer`: consomme `raw.gps` et alimente `WildFiGPSFix`.
+- `sensor-dealiot-consumer`: consomme `raw.sensor` et alimente
+  `WildFiDecodedSensorEvent`.
+
+Par defaut, les workers cherchent Kafka sur
+`kafka1:9092,kafka2:9092,kafka3:9092`. Adapter
+`DEALDATA_KAFKA_BOOTSTRAP_SERVERS` si DEALIoT expose d'autres endpoints.
+
 ## Contrats d'ingestion
 
 Exemple minimal `raw.gps`:
@@ -128,6 +154,9 @@ Exemple minimal `raw.gps`:
   "mqtt_topic": "wildfi/wildfi-17/gps",
   "latitude": 50.6333,
   "longitude": 5.5667,
+  "altitude_m": 121.5,
+  "speed_m_s": 1.8,
+  "heading_deg": 84.5,
   "payload": {
     "fix": 3,
     "hdop": 0.9
@@ -154,6 +183,16 @@ Exemple minimal `raw.sensor`:
 
 Les endpoints batch acceptent soit un tableau JSON, soit un objet
 `{"events": [...]}`.
+
+Compatibilite champs DEALIoT:
+
+- `altitude_m`, `speed_m_s` et `heading_deg` sont acceptes et normalises vers
+  les colonnes `altitude`, `speed` et `heading`.
+- Les anciens alias `alt`, `course`, `lat`, `lon` et `lng` restent acceptes.
+- Pour `raw.sensor`, `sensor_type` est determine dans cet ordre: champ
+  explicite top-level, `payload.sensor_type`, `payload.type`, suffixe
+  `mqtt_topic` connu (`imu`, `environment`, `proximity`, `movement`,
+  `metadata`, etc.), puis heuristiques sur les cles du payload.
 
 Codes HTTP attendus:
 
@@ -199,6 +238,11 @@ Variables obligatoires en production:
 Variables optionnelles ou avec valeur par defaut:
 
 - `CORE_DATABASE_NAME`, `GPS_DATABASE_NAME`, `SENSOR_DATABASE_NAME`.
+- `DEALDATA_KAFKA_BOOTSTRAP_SERVERS`,
+  `DEALDATA_KAFKA_AUTO_OFFSET_RESET`, `DEALDATA_KAFKA_MAX_RECORDS`,
+  `DEALDATA_KAFKA_POLL_TIMEOUT_MS`.
+- `DEALDATA_GPS_KAFKA_TOPIC`, `DEALDATA_GPS_KAFKA_GROUP_ID`,
+  `DEALDATA_SENSOR_KAFKA_TOPIC`, `DEALDATA_SENSOR_KAFKA_GROUP_ID`.
 - `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_TRACES_SAMPLE_RATE`,
   `SENTRY_SEND_DEFAULT_PII`.
 

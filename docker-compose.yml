@@ -130,6 +130,58 @@ services:
       timeout: 5s
       retries: 5
 
+  gps-dealiot-consumer:
+    profiles: ["dealiot"]
+    build:
+      context: ./gps_layer
+    command: ["python", "manage.py", "consume_dealiot_kafka"]
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: dev-gps-secret
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,gps
+      DATABASE_USE_POSTGRES: "true"
+      DATABASE_HOST: gps-db
+      DATABASE_NAME: dealdata_gps
+      DATABASE_USER: dealdata
+      DATABASE_PASSWORD: dealdata_dev_password
+      RUN_MIGRATIONS: "0"
+      RUN_COLLECTSTATIC: "0"
+      DEALDATA_KAFKA_BOOTSTRAP_SERVERS: ${DEALDATA_KAFKA_BOOTSTRAP_SERVERS:-kafka1:9092,kafka2:9092,kafka3:9092}
+      DEALDATA_GPS_KAFKA_TOPIC: ${DEALDATA_GPS_KAFKA_TOPIC:-raw.gps}
+      DEALDATA_GPS_KAFKA_GROUP_ID: ${DEALDATA_GPS_KAFKA_GROUP_ID:-dealdata-gps-ingest}
+      DEALDATA_KAFKA_AUTO_OFFSET_RESET: ${DEALDATA_KAFKA_AUTO_OFFSET_RESET:-earliest}
+      DEALDATA_KAFKA_MAX_RECORDS: ${DEALDATA_KAFKA_MAX_RECORDS:-100}
+      DEALDATA_KAFKA_POLL_TIMEOUT_MS: ${DEALDATA_KAFKA_POLL_TIMEOUT_MS:-1000}
+    depends_on:
+      gps:
+        condition: service_healthy
+
+  sensor-dealiot-consumer:
+    profiles: ["dealiot"]
+    build:
+      context: ./sensor_layer
+    command: ["python", "manage.py", "consume_dealiot_kafka"]
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: dev-sensor-secret
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,sensor
+      DATABASE_USE_POSTGRES: "true"
+      DATABASE_HOST: sensor-db
+      DATABASE_NAME: dealdata_sensor
+      DATABASE_USER: dealdata
+      DATABASE_PASSWORD: dealdata_dev_password
+      RUN_MIGRATIONS: "0"
+      RUN_COLLECTSTATIC: "0"
+      DEALDATA_KAFKA_BOOTSTRAP_SERVERS: ${DEALDATA_KAFKA_BOOTSTRAP_SERVERS:-kafka1:9092,kafka2:9092,kafka3:9092}
+      DEALDATA_SENSOR_KAFKA_TOPIC: ${DEALDATA_SENSOR_KAFKA_TOPIC:-raw.sensor}
+      DEALDATA_SENSOR_KAFKA_GROUP_ID: ${DEALDATA_SENSOR_KAFKA_GROUP_ID:-dealdata-sensor-ingest}
+      DEALDATA_KAFKA_AUTO_OFFSET_RESET: ${DEALDATA_KAFKA_AUTO_OFFSET_RESET:-earliest}
+      DEALDATA_KAFKA_MAX_RECORDS: ${DEALDATA_KAFKA_MAX_RECORDS:-100}
+      DEALDATA_KAFKA_POLL_TIMEOUT_MS: ${DEALDATA_KAFKA_POLL_TIMEOUT_MS:-1000}
+    depends_on:
+      sensor:
+        condition: service_healthy
+
 volumes:
   core-db-data:
   gps-db-data:
