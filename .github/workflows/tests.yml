@@ -19,7 +19,7 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_DB: dealdata_test
           POSTGRES_USER: dealdata
