@@ -23,10 +23,11 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY ./ ${APP_HOME}
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
 # User non-root
-RUN useradd -m appuser && chown -R appuser:appuser /app /entrypoint.sh
+RUN chmod +x /entrypoint.sh \
+    && useradd -m appuser \
+    && chown -R appuser:appuser /app /entrypoint.sh
 USER appuser
 
 # Expose the port

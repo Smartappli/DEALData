@@ -14,9 +14,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Install system dependencies.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libpq-dev \
-    curl \
     ca-certificates \
+    curl \
+    libpq-dev \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -45,15 +45,13 @@ COPY --from=builder /install /usr/local
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
     ca-certificates \
+    libpq-dev \
  && apt-get clean \
- && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# User non-root
-RUN useradd -m appuser \
-    && mkdir -p /app/staticfiles /app/logs /app/static /app/media \
-    && chown -R appuser:appuser /app
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+ && useradd -m appuser \
+ && mkdir -p /app/staticfiles /app/logs /app/static /app/media \
+ && chown -R appuser:appuser /app
 
 COPY --from=builder /app /app
 COPY --from=builder /entrypoint.sh /entrypoint.sh

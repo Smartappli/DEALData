@@ -366,6 +366,18 @@ def test_health_ready_reports_database_available() -> None:
     assert response.json()["database"] == "available"
 
 
+@pytest.mark.parametrize(
+    "path",
+    ["/health/live/", "/health/ready/", "/metrics/"],
+)
+def test_observability_endpoints_reject_unsafe_methods(path: str) -> None:
+    """Read-only observability endpoints reject unsafe HTTP methods."""
+    response = Client().post(path)
+
+    assert response.status_code == 405
+    assert response.headers["Allow"] == "GET, HEAD"
+
+
 @pytest.mark.django_db
 def test_sensor_event_direct_save_populates_payload_hash() -> None:
     """Directly-created sensor events still receive an idempotency hash."""

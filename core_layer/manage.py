@@ -13,11 +13,9 @@ def main() -> None:
     try:
         execute_from_command_line(sys.argv)
     except ImportError as exc:
-        message = (
-            "Couldn't import Django. Are you sure it's installed and "
-            "available on your PYTHONPATH environment variable? Did you "
-            "forget to activate a virtual environment?"
-        )
+        message = "Couldn't import Django. Are you sure it's installed and "
+        message += "available on your PYTHONPATH environment variable? Did you "
+        message += "forget to activate a virtual environment?"
         raise ImportError(message) from exc
 
 

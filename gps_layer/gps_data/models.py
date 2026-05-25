@@ -14,6 +14,12 @@ from django.utils.dateparse import parse_datetime
 from uuid_utils import uuid7
 
 
+OBSERVED_OBJECT_ID_VERBOSE_NAME = "Observed Object ID"
+OBSERVED_OBJECT_ID_HELP_TEXT = (
+    "UUID of the observed object managed by the core layer."
+)
+
+
 def uuid7_value() -> UUID:
     """Return a UUIDv7 value compatible with Django UUIDField."""
     return UUID(str(uuid7()))
@@ -151,8 +157,8 @@ class ObservedObjectGPSSensor(models.Model):
         editable=False,
     )
     observed_object_gps_sensor_observed_object_id = models.UUIDField(
-        verbose_name="Observed Object ID",
-        help_text="UUID of the observed object managed by the core layer.",
+        verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
+        help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
     observed_object_gps_sensor_gps_sensor = models.ForeignKey(
         GPSSensor,
@@ -282,8 +288,8 @@ class WildFiGPSFix(models.Model):
     observed_object_id = models.UUIDField(
         null=True,
         blank=True,
-        verbose_name="Observed Object ID",
-        help_text="UUID of the observed object managed by the core layer.",
+        verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
+        help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
     dealiot_topic = models.CharField(
         max_length=64,
@@ -448,8 +454,8 @@ class ProcessedGPSDataObservedObject(models.Model):
         related_name="gps_sensor_link2",
     )
     processed_gps_data_observed_object_uuid = models.UUIDField(
-        verbose_name="Observed Object ID",
-        help_text="UUID of the observed object managed by the core layer.",
+        verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
+        help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
     processed_gps_data_observed_object_acquisition_time = models.DateTimeField()
     processed_gps_data_observed_object_longitude = models.FloatField()

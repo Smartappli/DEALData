@@ -2,16 +2,19 @@
 
 from django.db import connections
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_safe
 
 from .models import Experiment, ObservedObject, Project
 
 
+@require_safe
 def health_live(request):
     """Return a cheap liveness response."""
     del request
     return JsonResponse({"status": "ok", "service": "core"})
 
 
+@require_safe
 def health_ready(request):
     """Return readiness after checking the default database connection."""
     del request
@@ -34,6 +37,7 @@ def health_ready(request):
     )
 
 
+@require_safe
 def metrics(request):
     """Return minimal Prometheus metrics for the core service."""
     del request

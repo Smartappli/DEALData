@@ -136,6 +136,18 @@ def test_health_ready(db) -> None:
     assert response.json()["database"] == "available"
 
 
+@pytest.mark.parametrize(
+    "path",
+    ["/health/live/", "/health/ready/", "/metrics/"],
+)
+def test_observability_endpoints_reject_unsafe_methods(path: str) -> None:
+    """Read-only observability endpoints reject unsafe HTTP methods."""
+    response = Client().post(path)
+
+    assert response.status_code == 405
+    assert response.headers["Allow"] == "GET, HEAD"
+
+
 @pytest.mark.django_db
 def test_metrics_exposes_prometheus_counts() -> None:
     """Metrics endpoint exposes core domain counters."""

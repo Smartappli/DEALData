@@ -345,6 +345,18 @@ def test_health_ready_reports_database_available() -> None:
     assert response.json()["database"] == "available"
 
 
+@pytest.mark.parametrize(
+    "path",
+    ["/health/live/", "/health/ready/", "/metrics/"],
+)
+def test_observability_endpoints_reject_unsafe_methods(path: str) -> None:
+    """Read-only observability endpoints reject unsafe HTTP methods."""
+    response = Client().post(path)
+
+    assert response.status_code == 405
+    assert response.headers["Allow"] == "GET, HEAD"
+
+
 @pytest.mark.django_db
 def test_processed_gps_data_populates_geojson() -> None:
     """Processed GPS data mirrors lon/lat into GeoJSON."""

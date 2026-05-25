@@ -14,6 +14,12 @@ from django.utils.dateparse import parse_datetime
 from uuid_utils import uuid7
 
 
+OBSERVED_OBJECT_ID_VERBOSE_NAME = "Observed Object ID"
+OBSERVED_OBJECT_ID_HELP_TEXT = (
+    "UUID of the observed object managed by the core layer."
+)
+
+
 def uuid7_value() -> UUID:
     """Return a UUIDv7 value compatible with Django UUIDField."""
     return UUID(str(uuid7()))
@@ -202,8 +208,8 @@ class SensorObservedObject(models.Model):
         editable=False,
     )
     sensor_observed_object_object_id = models.UUIDField(
-        verbose_name="Observed Object ID",
-        help_text="UUID of the observed object managed by the core layer.",
+        verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
+        help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
     sensor_observed_object_sensor = models.ForeignKey(
         Sensor,
@@ -302,8 +308,8 @@ class WildFiDecodedSensorEvent(models.Model):
     observed_object_id = models.UUIDField(
         null=True,
         blank=True,
-        verbose_name="Observed Object ID",
-        help_text="UUID of the observed object managed by the core layer.",
+        verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
+        help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
     dealiot_topic = models.CharField(
         max_length=64,
@@ -413,8 +419,8 @@ class SensorDataObservedObject(models.Model):
         related_name="sensor_data_observed_object_sensor",
     )
     sensor_data_observed_object_object_id = models.UUIDField(
-        verbose_name="Observed Object ID",
-        help_text="UUID of the observed object managed by the core layer.",
+        verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
+        help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
     sensor_data_observed_object_acquisition_time = models.DateTimeField()
     sensor_data_observed_object_value = models.JSONField(

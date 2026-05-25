@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db import connections
 from django.http import HttpResponse, JsonResponse
 from django.utils.dateparse import parse_datetime
+from django.views.decorators.http import require_safe
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,12 +16,14 @@ from .models import WildFiGPSFix
 from .serializers import WildFiGPSBatchSerializer
 
 
+@require_safe
 def health_live(request):
     """Return a cheap liveness response."""
     del request
     return JsonResponse({"status": "ok", "service": "gps"})
 
 
+@require_safe
 def health_ready(request):
     """Return readiness after checking the default database connection."""
     del request
@@ -43,6 +46,7 @@ def health_ready(request):
     )
 
 
+@require_safe
 def metrics(request):
     """Return minimal Prometheus metrics for the GPS service."""
     del request
