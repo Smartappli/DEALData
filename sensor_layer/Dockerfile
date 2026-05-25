@@ -18,10 +18,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY ./requirements.lock ./
 RUN pip install --no-cache-dir --require-hashes --only-binary :all: -r requirements.lock
 
-# Copy project code
-COPY ./ ${APP_HOME}
-
-COPY entrypoint.sh /entrypoint.sh
+# Copy only application files needed at runtime.
+COPY ./manage.py ./manage.py
+COPY ./sensor/*.py ./sensor/
+COPY ./sensor_data/*.py ./sensor_data/
+COPY ./sensor_data/management/*.py ./sensor_data/management/
+COPY ./sensor_data/management/commands/*.py ./sensor_data/management/commands/
+COPY ./sensor_data/migrations/*.py ./sensor_data/migrations/
+COPY ./entrypoint.sh /entrypoint.sh
 
 # User non-root
 RUN chmod +x /entrypoint.sh \

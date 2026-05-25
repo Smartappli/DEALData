@@ -18,10 +18,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY ./requirements.lock ./
 RUN pip install --no-cache-dir --require-hashes --only-binary :all: -r requirements.lock
 
-# Copy project code
-COPY ./ ${APP_HOME}
-
-COPY entrypoint.sh /entrypoint.sh
+# Copy only application files needed at runtime.
+COPY ./manage.py ./manage.py
+COPY ./auth/*.py ./auth/
+COPY ./auth/forgot_password/*.py ./auth/forgot_password/
+COPY ./auth/login/*.py ./auth/login/
+COPY ./auth/migrations/*.py ./auth/migrations/
+COPY ./auth/register/*.py ./auth/register/
+COPY ./auth/reset_password/*.py ./auth/reset_password/
+COPY ./auth/verify_email/*.py ./auth/verify_email/
+COPY ./core/*.py ./core/
+COPY ./core_data/*.py ./core_data/
+COPY ./core_data/migrations/*.py ./core_data/migrations/
+COPY ./entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh \
     && useradd -m appuser \

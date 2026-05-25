@@ -26,12 +26,6 @@ RUN pip install --prefix=/install --no-cache-dir --require-hashes --only-binary 
  && find /install -name "*.pyc" -delete \
  && find /install -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
-# Copy project code
-COPY ./ ${APP_HOME}
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 # Stage 2: Lightweight runtime image
 FROM python:3.14-slim-trixie AS runtime
 
@@ -51,8 +45,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && mkdir -p /app/staticfiles /app/logs /app/static /app/media \
  && chown -R appuser:appuser /app
 
-COPY --from=builder /app /app
-COPY --from=builder /entrypoint.sh /entrypoint.sh
+# Copy only application files needed at runtime.
+COPY ./manage.py ./manage.py
+COPY ./__init__.py ./__init__.py
+COPY ./gps/*.py ./gps/
+COPY ./gps_data/*.py ./gps_data/
+COPY ./gps_data/management/*.py ./gps_data/management/
+COPY ./gps_data/management/commands/*.py ./gps_data/management/commands/
+COPY ./gps_data/migrations/*.py ./gps_data/migrations/
+COPY ./entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh \
     && chown appuser:appuser /entrypoint.sh \
