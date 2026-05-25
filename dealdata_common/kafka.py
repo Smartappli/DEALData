@@ -74,8 +74,14 @@ class DealIotKafkaCommand(BaseCommand):
                 default="kafka1:9092,kafka2:9092,kafka3:9092",
             ),
         )
-        parser.add_argument("--topic", default=env(self.topic_env, default=self.default_topic))
-        parser.add_argument("--group-id", default=env(self.group_id_env, default=self.default_group_id))
+        parser.add_argument(
+            "--topic",
+            default=env(self.topic_env, default=self.default_topic),
+        )
+        parser.add_argument(
+            "--group-id",
+            default=env(self.group_id_env, default=self.default_group_id),
+        )
         parser.add_argument(
             "--auto-offset-reset",
             choices=["earliest", "latest", "none"],
