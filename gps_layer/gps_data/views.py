@@ -3,16 +3,16 @@
 from datetime import UTC
 
 from django.conf import settings
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError, connections, transaction
+from django.db import connections
 from django.http import HttpResponse, JsonResponse
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .ingestion import ingest_dealiot_gps_event
 from .models import WildFiGPSFix
-from .serializers import WildFiGPSBatchSerializer, WildFiGPSIngestSerializer
+from .serializers import WildFiGPSBatchSerializer
 
 
 def health_live(request):
@@ -76,34 +76,6 @@ def _token_error(request) -> Response | None:
     )
 
 
-def _find_existing(event: WildFiGPSFix) -> WildFiGPSFix | None:
-    if event.event_id:
-        existing = WildFiGPSFix.objects.filter(
-            source=event.source,
-            event_id=event.event_id,
-        ).first()
-        if existing:
-            return existing
-    if event.payload_hash:
-        return WildFiGPSFix.objects.filter(
-            source=event.source,
-            payload_hash=event.payload_hash,
-        ).first()
-    return None
-
-
-def _serialize_event(event: WildFiGPSFix, *, duplicate: bool) -> dict[str, object]:
-    return {
-        "id": str(event.wildfi_gps_fix_id),
-        "duplicate": duplicate,
-        "device_id": event.wildfi_device_id,
-        "event_id": event.event_id,
-        "payload_hash": event.payload_hash,
-        "topic": event.dealiot_topic,
-        "timestamp": event.acquisition_time.isoformat(),
-    }
-
-
 def _serialize_gps_fix(event: WildFiGPSFix) -> dict[str, object]:
     return {
         "id": str(event.wildfi_gps_fix_id),
@@ -150,31 +122,6 @@ def _parse_datetime_filter(value: str | None, field_name: str):
     return parsed
 
 
-def _ingest_event(payload: dict[str, object]) -> tuple[dict[str, object], int]:
-    serializer = WildFiGPSIngestSerializer(data=payload)
-    if not serializer.is_valid():
-        return {"detail": serializer.errors}, status.HTTP_400_BAD_REQUEST
-
-    event = WildFiGPSFix.from_dealiot_event(serializer.validated_data)
-    existing = _find_existing(event)
-    if existing:
-        return _serialize_event(existing, duplicate=True), status.HTTP_200_OK
-
-    try:
-        with transaction.atomic():
-            event.full_clean()
-            event.save()
-    except DjangoValidationError as exc:
-        return {"detail": exc.message_dict}, status.HTTP_400_BAD_REQUEST
-    except IntegrityError:
-        existing = _find_existing(event)
-        if existing:
-            return _serialize_event(existing, duplicate=True), status.HTTP_200_OK
-        raise
-
-    return _serialize_event(event, duplicate=False), status.HTTP_201_CREATED
-
-
 class WildFiGPSIngestView(APIView):
     """Receive decoded WildFi GPS events from DEALIoT."""
 
@@ -193,7 +140,7 @@ class WildFiGPSIngestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        body, response_status = _ingest_event(request.data)
+        body, response_status = ingest_dealiot_gps_event(request.data)
         return Response(body, status=response_status)
 
 
@@ -290,7 +237,7 @@ class WildFiGPSBatchIngestView(APIView):
         duplicates = 0
         errors = 0
         for index, event_payload in enumerate(serializer.validated_data["events"]):
-            body, response_status = _ingest_event(event_payload)
+            body, response_status = ingest_dealiot_gps_event(event_payload)
             result = {"index": index, "status": response_status, **body}
             results.append(result)
             if response_status == status.HTTP_201_CREATED:

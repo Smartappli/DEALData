@@ -27,9 +27,12 @@ class WildFiGPSIngestSerializer(serializers.Serializer):
     lng = serializers.FloatField(required=False)
     altitude = serializers.FloatField(required=False, allow_null=True)
     alt = serializers.FloatField(required=False, allow_null=True)
+    altitude_m = serializers.FloatField(required=False, allow_null=True)
     speed = serializers.FloatField(required=False, allow_null=True)
+    speed_m_s = serializers.FloatField(required=False, allow_null=True)
     heading = serializers.FloatField(required=False, allow_null=True)
     course = serializers.FloatField(required=False, allow_null=True)
+    heading_deg = serializers.FloatField(required=False, allow_null=True)
     payload = serializers.JSONField(required=False)
 
     def validate_payload(self, value):

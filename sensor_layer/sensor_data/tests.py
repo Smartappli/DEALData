@@ -84,6 +84,60 @@ def test_wildfi_sensor_ingest_is_idempotent() -> None:
 
 
 @pytest.mark.django_db
+def test_wildfi_sensor_type_is_inferred_from_dealiot_mqtt_topic() -> None:
+    """Sensor ingestion infers a stable type when DEALIoT omits sensor_type."""
+    client = APIClient()
+    event = {
+        "event_id": "sensor-event-imu-topic",
+        "device_id": "WF-002",
+        "timestamp": "2024-01-01T00:00:00+00:00",
+        "source": "wildfi-mqtt",
+        "mqtt_topic": "wildfi/tags/WF-002/imu",
+        "payload": {
+            "accX": -0.05,
+            "accY": 0.01,
+            "accZ": 0.98,
+            "temperatureInDegCel": 18.7,
+        },
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/sensor/",
+        event,
+        format="json",
+    )
+
+    sensor_event = WildFiDecodedSensorEvent.objects.get(
+        event_id="sensor-event-imu-topic",
+    )
+    assert response.status_code == 201
+    assert response.data["sensor_type"] == "imu"
+    assert sensor_event.sensor_type == "imu"
+
+
+@pytest.mark.django_db
+def test_wildfi_sensor_type_prefers_explicit_payload_value() -> None:
+    """Explicit DEALIoT sensor_type values override topic inference."""
+    client = APIClient()
+    event = {
+        "event_id": "sensor-event-explicit-type",
+        "device_id": "WF-003",
+        "timestamp": "2024-01-01T00:00:00+00:00",
+        "mqtt_topic": "wildfi/tags/WF-003/imu",
+        "payload": {"sensor_type": "temperature", "value": 18.5},
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/sensor/",
+        event,
+        format="json",
+    )
+
+    assert response.status_code == 201
+    assert response.data["sensor_type"] == "temperature"
+
+
+@pytest.mark.django_db
 def test_wildfi_sensor_batch_ingest_accepts_duplicates() -> None:
     """Batch ingestion reports inserts and duplicates without failing."""
     client = APIClient()

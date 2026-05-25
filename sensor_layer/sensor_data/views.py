@@ -3,19 +3,16 @@
 from datetime import UTC
 
 from django.conf import settings
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError, connections, transaction
+from django.db import connections
 from django.http import HttpResponse, JsonResponse
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .ingestion import ingest_dealiot_sensor_event
 from .models import WildFiDecodedSensorEvent
-from .serializers import (
-    WildFiSensorBatchSerializer,
-    WildFiSensorIngestSerializer,
-)
+from .serializers import WildFiSensorBatchSerializer
 
 
 def health_live(request):
@@ -81,41 +78,6 @@ def _token_error(request) -> Response | None:
     )
 
 
-def _find_existing(
-    event: WildFiDecodedSensorEvent,
-) -> WildFiDecodedSensorEvent | None:
-    if event.event_id:
-        existing = WildFiDecodedSensorEvent.objects.filter(
-            source=event.source,
-            event_id=event.event_id,
-        ).first()
-        if existing:
-            return existing
-    if event.payload_hash:
-        return WildFiDecodedSensorEvent.objects.filter(
-            source=event.source,
-            payload_hash=event.payload_hash,
-        ).first()
-    return None
-
-
-def _serialize_event(
-    event: WildFiDecodedSensorEvent,
-    *,
-    duplicate: bool,
-) -> dict[str, object]:
-    return {
-        "id": str(event.wildfi_decoded_sensor_event_id),
-        "duplicate": duplicate,
-        "device_id": event.wildfi_device_id,
-        "event_id": event.event_id,
-        "payload_hash": event.payload_hash,
-        "topic": event.dealiot_topic,
-        "timestamp": event.acquisition_time.isoformat(),
-        "sensor_type": event.sensor_type,
-    }
-
-
 def _serialize_sensor_event(event: WildFiDecodedSensorEvent) -> dict[str, object]:
     return {
         "id": str(event.wildfi_decoded_sensor_event_id),
@@ -157,31 +119,6 @@ def _parse_datetime_filter(value: str | None, field_name: str):
     return parsed
 
 
-def _ingest_event(payload: dict[str, object]) -> tuple[dict[str, object], int]:
-    serializer = WildFiSensorIngestSerializer(data=payload)
-    if not serializer.is_valid():
-        return {"detail": serializer.errors}, status.HTTP_400_BAD_REQUEST
-
-    event = WildFiDecodedSensorEvent.from_dealiot_event(serializer.validated_data)
-    existing = _find_existing(event)
-    if existing:
-        return _serialize_event(existing, duplicate=True), status.HTTP_200_OK
-
-    try:
-        with transaction.atomic():
-            event.full_clean()
-            event.save()
-    except DjangoValidationError as exc:
-        return {"detail": exc.message_dict}, status.HTTP_400_BAD_REQUEST
-    except IntegrityError:
-        existing = _find_existing(event)
-        if existing:
-            return _serialize_event(existing, duplicate=True), status.HTTP_200_OK
-        raise
-
-    return _serialize_event(event, duplicate=False), status.HTTP_201_CREATED
-
-
 class WildFiSensorIngestView(APIView):
     """Receive decoded WildFi sensor events from DEALIoT."""
 
@@ -200,7 +137,7 @@ class WildFiSensorIngestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        body, response_status = _ingest_event(request.data)
+        body, response_status = ingest_dealiot_sensor_event(request.data)
         return Response(body, status=response_status)
 
 
@@ -303,7 +240,7 @@ class WildFiSensorBatchIngestView(APIView):
         duplicates = 0
         errors = 0
         for index, event_payload in enumerate(serializer.validated_data["events"]):
-            body, response_status = _ingest_event(event_payload)
+            body, response_status = ingest_dealiot_sensor_event(event_payload)
             result = {"index": index, "status": response_status, **body}
             results.append(result)
             if response_status == status.HTTP_201_CREATED:

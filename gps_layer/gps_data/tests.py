@@ -76,6 +76,37 @@ def test_wildfi_gps_ingest_is_idempotent() -> None:
 
 
 @pytest.mark.django_db
+def test_wildfi_gps_ingest_accepts_dealiot_metric_aliases() -> None:
+    """GPS ingestion normalizes DEALIoT metric field names."""
+    client = APIClient()
+    event = {
+        "event_id": "gps-event-dealiot-aliases",
+        "device_id": "WF-001",
+        "timestamp": "2024-01-01T00:00:00+00:00",
+        "source": "wildfi-mqtt",
+        "mqtt_topic": "wildfi/tags/WF-001/gps",
+        "latitude": 47.695,
+        "longitude": 9.132,
+        "altitude_m": 411.2,
+        "speed_m_s": 1.8,
+        "heading_deg": 84.5,
+        "payload": {"fixType": 3},
+    }
+
+    response = client.post(
+        "/api/ingest/wildfi/gps/",
+        event,
+        format="json",
+    )
+
+    gps_fix = WildFiGPSFix.objects.get(event_id="gps-event-dealiot-aliases")
+    assert response.status_code == 201
+    assert gps_fix.altitude == 411.2
+    assert gps_fix.speed == 1.8
+    assert gps_fix.heading == 84.5
+
+
+@pytest.mark.django_db
 def test_wildfi_gps_batch_ingest_accepts_duplicates() -> None:
     """Batch ingestion reports inserts and duplicates without failing."""
     client = APIClient()

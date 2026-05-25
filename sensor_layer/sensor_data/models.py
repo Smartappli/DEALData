@@ -58,6 +58,77 @@ def _event_metadata(event: dict[str, Any]) -> dict[str, Any]:
     return {field: event[field] for field in metadata_fields if field in event}
 
 
+def _sensor_type_from_mqtt_topic(mqtt_topic: Any) -> str:
+    """Infer a stable sensor type from common DEALIoT/WildFi MQTT topics."""
+    aliases = {
+        "acc": "imu",
+        "accelerometer": "imu",
+        "bme": "environment",
+        "decoded": "decoded",
+        "environment": "environment",
+        "gateway": "metadata",
+        "imu": "imu",
+        "mag": "imu",
+        "metadata": "metadata",
+        "move": "movement",
+        "movement": "movement",
+        "prox": "proximity",
+        "proximity": "proximity",
+        "sensor": "sensor",
+        "telemetry": "telemetry",
+    }
+    topic = str(mqtt_topic or "")
+    for part in reversed([item for item in topic.lower().split("/") if item]):
+        inferred = aliases.get(part)
+        if inferred:
+            return inferred
+    return ""
+
+
+def _sensor_type_from_payload(payload: dict[str, Any]) -> str:
+    """Infer sensor type from known decoded WildFi payload keys."""
+    keys = {str(key) for key in payload}
+    lowered = {key.lower() for key in keys}
+
+    if lowered & {
+        "accx",
+        "accy",
+        "accz",
+        "gyrox",
+        "gyroy",
+        "gyroz",
+        "magx",
+        "magy",
+        "magz",
+    }:
+        return "imu"
+    if lowered & {
+        "batteryvoltage",
+        "humidity",
+        "pressure",
+        "temperature",
+        "temperatureindegcel",
+    }:
+        return "environment"
+    if lowered & {"proximity", "prox", "distance", "distance_mm"}:
+        return "proximity"
+    if lowered & {"movement", "activity", "odba"}:
+        return "movement"
+    return ""
+
+
+def _infer_sensor_type(event: dict[str, Any], payload: dict[str, Any]) -> str:
+    """Infer sensor type with explicit values taking precedence."""
+    sensor_type = (
+        event.get("sensor_type")
+        or payload.get("sensor_type")
+        or payload.get("type")
+        or _sensor_type_from_mqtt_topic(event.get("mqtt_topic"))
+        or _sensor_type_from_payload(payload)
+    )
+    return str(sensor_type or "")
+
+
 def _stable_event_hash(event: dict[str, Any]) -> str:
     """Build a stable idempotency hash for a decoded DEALIoT event."""
     serialized = json.dumps(
@@ -284,12 +355,7 @@ class WildFiDecodedSensorEvent(models.Model):
             message = "DEALIoT sensor event must contain 'device_id'."
             raise ValueError(message)
 
-        sensor_type = (
-            event.get("sensor_type")
-            or payload.get("sensor_type")
-            or payload.get("type")
-            or ""
-        )
+        sensor_type = _infer_sensor_type(event, payload)
 
         return cls(
             wildfi_device_id=str(device_id),
