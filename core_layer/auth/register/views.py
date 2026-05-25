@@ -1,10 +1,9 @@
 """Views for user registration workflows."""
 
-import uuid
-
 from asgiref.sync import sync_to_async
 from auth.helpers import send_verification_email
 from auth.models import Profile
+from auth.tokens import generate_url_token, hash_url_token
 from auth.views import AuthView
 from django.conf import settings
 from django.contrib import messages
@@ -95,12 +94,12 @@ class RegisterView(AuthView):
         )
         await sync_to_async(created_user.groups.add)(user_group)
 
-        verification_token = str(uuid.uuid4())
+        verification_token = generate_url_token()
 
         user_profile, _created_profile = await Profile.objects.aget_or_create(
             user=created_user,
         )
-        user_profile.email_token = verification_token
+        user_profile.email_token = hash_url_token(verification_token)
         user_profile.email = email
         await user_profile.asave()
 

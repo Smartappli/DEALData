@@ -1,11 +1,11 @@
 """Views for forgot-password workflows."""
 
-import uuid
 from datetime import timedelta
 
 from asgiref.sync import sync_to_async
 from auth.helpers import send_password_reset_email
 from auth.models import Profile
+from auth.tokens import generate_url_token, hash_url_token
 from auth.views import AuthView
 from django.conf import settings
 from django.contrib import messages
@@ -62,7 +62,7 @@ class ForgetPasswordView(AuthView):
             return redirect("forgot-password")
 
         user = await User.objects.filter(email=email).afirst()
-        reset_token = str(uuid.uuid4())
+        reset_token = generate_url_token()
         expiration_time = timezone.now() + timedelta(
             hours=RESET_TOKEN_EXPIRATION_HOURS,
         )
@@ -71,7 +71,7 @@ class ForgetPasswordView(AuthView):
             user_profile, _created_profile = await Profile.objects.aget_or_create(
                 user=user,
             )
-            user_profile.forget_password_token = reset_token
+            user_profile.forget_password_token = hash_url_token(reset_token)
             user_profile.forget_password_token_expires_at = expiration_time
             await user_profile.asave()
 

@@ -73,6 +73,24 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    env:
+      CORE_DJANGO_SECRET_KEY: ${{ github.run_id }}-core
+      GPS_DJANGO_SECRET_KEY: ${{ github.run_id }}-gps
+      SENSOR_DJANGO_SECRET_KEY: ${{ github.run_id }}-sensor
+      CORE_DJANGO_ALLOWED_HOSTS: core.example.test
+      GPS_DJANGO_ALLOWED_HOSTS: gps.example.test
+      SENSOR_DJANGO_ALLOWED_HOSTS: sensor.example.test
+      DEALDATA_INGEST_TOKEN: ${{ github.run_id }}-ingest
+      CORE_DATABASE_HOST: core-db
+      CORE_DATABASE_USER: dealdata
+      CORE_DATABASE_PASSWORD: ${{ github.run_id }}-core-db
+      GPS_DATABASE_HOST: gps-db
+      GPS_DATABASE_USER: dealdata
+      GPS_DATABASE_PASSWORD: ${{ github.run_id }}-gps-db
+      SENSOR_DATABASE_HOST: sensor-db
+      SENSOR_DATABASE_USER: dealdata
+      SENSOR_DATABASE_PASSWORD: ${{ github.run_id }}-sensor-db
+      DEALDATA_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9092,kafka3:9092
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
@@ -84,24 +102,6 @@ jobs:
         run: docker compose -f docker-compose.yml --profile dealiot config --quiet
 
       - name: Validate production Compose config
-        env:
-          CORE_DJANGO_SECRET_KEY: ci-core-secret
-          GPS_DJANGO_SECRET_KEY: ci-gps-secret
-          SENSOR_DJANGO_SECRET_KEY: ci-sensor-secret
-          CORE_DJANGO_ALLOWED_HOSTS: core.example.test
-          GPS_DJANGO_ALLOWED_HOSTS: gps.example.test
-          SENSOR_DJANGO_ALLOWED_HOSTS: sensor.example.test
-          DEALDATA_INGEST_TOKEN: ci-ingest-token
-          CORE_DATABASE_HOST: core-db
-          CORE_DATABASE_USER: dealdata
-          CORE_DATABASE_PASSWORD: ci-core-db-password
-          GPS_DATABASE_HOST: gps-db
-          GPS_DATABASE_USER: dealdata
-          GPS_DATABASE_PASSWORD: ci-gps-db-password
-          SENSOR_DATABASE_HOST: sensor-db
-          SENSOR_DATABASE_USER: dealdata
-          SENSOR_DATABASE_PASSWORD: ci-sensor-db-password
-          DEALDATA_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9092,kafka3:9092
         run: |
           docker compose \
             -f docker-compose.yml \
@@ -124,7 +124,7 @@ jobs:
         env:
           POSTGRES_DB: dealdata_test
           POSTGRES_USER: dealdata
-          POSTGRES_PASSWORD: dealdata_test_password
+          POSTGRES_PASSWORD: ${{ github.run_id }}
         ports:
           - 5432:5432
         options: >-
@@ -174,7 +174,7 @@ jobs:
           DATABASE_HOST: 127.0.0.1
           DATABASE_NAME: dealdata_test
           DATABASE_USER: dealdata
-          DATABASE_PASSWORD: dealdata_test_password
+          DATABASE_PASSWORD: ${{ github.run_id }}
         run: python manage.py check
 
       - name: Check migrations are committed
@@ -184,7 +184,7 @@ jobs:
           DATABASE_HOST: 127.0.0.1
           DATABASE_NAME: dealdata_test
           DATABASE_USER: dealdata
-          DATABASE_PASSWORD: dealdata_test_password
+          DATABASE_PASSWORD: ${{ github.run_id }}
         run: python manage.py makemigrations --check --dry-run
 
       - name: Smoke Kafka consumer command
@@ -195,7 +195,7 @@ jobs:
           DATABASE_HOST: 127.0.0.1
           DATABASE_NAME: dealdata_test
           DATABASE_USER: dealdata
-          DATABASE_PASSWORD: dealdata_test_password
+          DATABASE_PASSWORD: ${{ github.run_id }}
         run: python manage.py consume_dealiot_kafka --help
 
       - name: Run tests
@@ -205,7 +205,7 @@ jobs:
           DATABASE_HOST: 127.0.0.1
           DATABASE_NAME: dealdata_test
           DATABASE_USER: dealdata
-          DATABASE_PASSWORD: dealdata_test_password
+          DATABASE_PASSWORD: ${{ github.run_id }}
         run: |
           python -m pytest . \
             --ds=${{ matrix.settings }} \

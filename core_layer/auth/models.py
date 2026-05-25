@@ -18,11 +18,11 @@ class Profile(models.Model):
         max_length=100,
         unique=True,
     )
-    email_token = models.CharField(max_length=100, blank=True, default="")
+    email_token = models.CharField(max_length=100, blank=True, null=True)
     forget_password_token = models.CharField(
         max_length=100,
         blank=True,
-        default="",
+        null=True,
     )
     forget_password_token_expires_at = models.DateTimeField(
         blank=True,

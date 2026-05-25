@@ -1,10 +1,9 @@
 """Views for email verification workflows."""
 
-import uuid
-
 from asgiref.sync import sync_to_async
 from auth.helpers import send_verification_email
 from auth.models import Profile
+from auth.tokens import generate_url_token, hash_url_token
 from auth.views import AuthView
 from django.conf import settings
 from django.contrib import messages
@@ -26,7 +25,7 @@ class VerifyEmailTokenView(AuthView):
     Verify a user's email address using a token.
 
     GET /verify-email/<token>:
-    - Finds the Profile with `email_token == token`.
+    - Finds the Profile with `email_token == hash(token)`.
     - Sets `is_verified = True` and clears `email_token`.
     - Shows a success message.
     - Redirects to the login page.
@@ -48,7 +47,9 @@ class VerifyEmailTokenView(AuthView):
             An HTTP redirect response.
 
         """
-        profile = await Profile.objects.filter(email_token=token).afirst()
+        profile = await Profile.objects.filter(
+            email_token=hash_url_token(token),
+        ).afirst()
         if not profile:
             await sync_to_async(messages.error)(
                 request,
@@ -57,7 +58,7 @@ class VerifyEmailTokenView(AuthView):
             return redirect("verify-email-page")
 
         profile.is_verified = True
-        profile.email_token = ""
+        profile.email_token = None
         await profile.asave()
 
         if not request.user.is_authenticated:
@@ -98,7 +99,7 @@ class SendVerificationView(AuthView):
 
     GET /send-verification:
     - Determines the target email.
-    - Generates a new UUID token and saves it into Profile.email_token.
+    - Generates a new URL token and saves its hash into Profile.email_token.
     - Sends the verification email.
     - Displays a success or error message.
     - Redirects back to the verify email page.
@@ -130,7 +131,7 @@ class SendVerificationView(AuthView):
             )
             return redirect("verify-email-page")
 
-        verification_uuid = str(uuid.uuid4())
+        verification_token = generate_url_token()
         user_profile = await Profile.objects.filter(email=email).afirst()
         if not user_profile:
             await sync_to_async(messages.error)(
@@ -139,9 +140,9 @@ class SendVerificationView(AuthView):
             )
             return redirect("verify-email-page")
 
-        user_profile.email_token = verification_uuid
+        user_profile.email_token = hash_url_token(verification_token)
         await user_profile.asave()
-        await send_verification_email(email, verification_uuid)
+        await send_verification_email(email, verification_token)
         await sync_to_async(messages.success)(request, success_message)
 
         return redirect("verify-email-page")

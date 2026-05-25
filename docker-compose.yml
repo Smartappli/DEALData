@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: dealdata_core
       POSTGRES_USER: dealdata
-      POSTGRES_PASSWORD: dealdata_dev_password
+      POSTGRES_PASSWORD: ${CORE_DATABASE_PASSWORD:?set CORE_DATABASE_PASSWORD}
     volumes:
       - core-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +18,7 @@ services:
     environment:
       POSTGRES_DB: dealdata_gps
       POSTGRES_USER: dealdata
-      POSTGRES_PASSWORD: dealdata_dev_password
+      POSTGRES_PASSWORD: ${GPS_DATABASE_PASSWORD:?set GPS_DATABASE_PASSWORD}
     volumes:
       - gps-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -32,7 +32,7 @@ services:
     environment:
       POSTGRES_DB: dealdata_sensor
       POSTGRES_USER: dealdata
-      POSTGRES_PASSWORD: dealdata_dev_password
+      POSTGRES_PASSWORD: ${SENSOR_DATABASE_PASSWORD:?set SENSOR_DATABASE_PASSWORD}
     volumes:
       - sensor-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -47,13 +47,13 @@ services:
       dockerfile: core_layer/Dockerfile
     environment:
       DJANGO_DEBUG: "true"
-      DJANGO_SECRET_KEY: dev-core-secret
+      DJANGO_SECRET_KEY: ${CORE_DJANGO_SECRET_KEY:?set CORE_DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,core
       DATABASE_USE_POSTGRES: "true"
       DATABASE_HOST: core-db
       DATABASE_NAME: dealdata_core
       DATABASE_USER: dealdata
-      DATABASE_PASSWORD: dealdata_dev_password
+      DATABASE_PASSWORD: ${CORE_DATABASE_PASSWORD:?set CORE_DATABASE_PASSWORD}
     ports:
       - "7000:7000"
     depends_on:
@@ -77,14 +77,14 @@ services:
       dockerfile: gps_layer/Dockerfile
     environment:
       DJANGO_DEBUG: "true"
-      DJANGO_SECRET_KEY: dev-gps-secret
+      DJANGO_SECRET_KEY: ${GPS_DJANGO_SECRET_KEY:?set GPS_DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,gps
-      DEALDATA_INGEST_TOKEN: dev-ingest-token
+      DEALDATA_INGEST_TOKEN: ${DEALDATA_INGEST_TOKEN:?set DEALDATA_INGEST_TOKEN}
       DATABASE_USE_POSTGRES: "true"
       DATABASE_HOST: gps-db
       DATABASE_NAME: dealdata_gps
       DATABASE_USER: dealdata
-      DATABASE_PASSWORD: dealdata_dev_password
+      DATABASE_PASSWORD: ${GPS_DATABASE_PASSWORD:?set GPS_DATABASE_PASSWORD}
     ports:
       - "7001:7001"
     depends_on:
@@ -108,14 +108,14 @@ services:
       dockerfile: sensor_layer/Dockerfile
     environment:
       DJANGO_DEBUG: "true"
-      DJANGO_SECRET_KEY: dev-sensor-secret
+      DJANGO_SECRET_KEY: ${SENSOR_DJANGO_SECRET_KEY:?set SENSOR_DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,sensor
-      DEALDATA_INGEST_TOKEN: dev-ingest-token
+      DEALDATA_INGEST_TOKEN: ${DEALDATA_INGEST_TOKEN:?set DEALDATA_INGEST_TOKEN}
       DATABASE_USE_POSTGRES: "true"
       DATABASE_HOST: sensor-db
       DATABASE_NAME: dealdata_sensor
       DATABASE_USER: dealdata
-      DATABASE_PASSWORD: dealdata_dev_password
+      DATABASE_PASSWORD: ${SENSOR_DATABASE_PASSWORD:?set SENSOR_DATABASE_PASSWORD}
     ports:
       - "7002:7002"
     depends_on:
@@ -141,13 +141,13 @@ services:
     command: ["python", "manage.py", "consume_dealiot_kafka"]
     environment:
       DJANGO_DEBUG: "true"
-      DJANGO_SECRET_KEY: dev-gps-secret
+      DJANGO_SECRET_KEY: ${GPS_DJANGO_SECRET_KEY:?set GPS_DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,gps
       DATABASE_USE_POSTGRES: "true"
       DATABASE_HOST: gps-db
       DATABASE_NAME: dealdata_gps
       DATABASE_USER: dealdata
-      DATABASE_PASSWORD: dealdata_dev_password
+      DATABASE_PASSWORD: ${GPS_DATABASE_PASSWORD:?set GPS_DATABASE_PASSWORD}
       RUN_MIGRATIONS: "0"
       RUN_COLLECTSTATIC: "0"
       DEALDATA_KAFKA_BOOTSTRAP_SERVERS: ${DEALDATA_KAFKA_BOOTSTRAP_SERVERS:-kafka1:9092,kafka2:9092,kafka3:9092}
@@ -168,13 +168,13 @@ services:
     command: ["python", "manage.py", "consume_dealiot_kafka"]
     environment:
       DJANGO_DEBUG: "true"
-      DJANGO_SECRET_KEY: dev-sensor-secret
+      DJANGO_SECRET_KEY: ${SENSOR_DJANGO_SECRET_KEY:?set SENSOR_DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,sensor
       DATABASE_USE_POSTGRES: "true"
       DATABASE_HOST: sensor-db
       DATABASE_NAME: dealdata_sensor
       DATABASE_USER: dealdata
-      DATABASE_PASSWORD: dealdata_dev_password
+      DATABASE_PASSWORD: ${SENSOR_DATABASE_PASSWORD:?set SENSOR_DATABASE_PASSWORD}
       RUN_MIGRATIONS: "0"
       RUN_COLLECTSTATIC: "0"
       DEALDATA_KAFKA_BOOTSTRAP_SERVERS: ${DEALDATA_KAFKA_BOOTSTRAP_SERVERS:-kafka1:9092,kafka2:9092,kafka3:9092}

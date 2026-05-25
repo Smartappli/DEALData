@@ -2,6 +2,7 @@
 
 from asgiref.sync import sync_to_async
 from auth.models import Profile
+from auth.tokens import hash_url_token
 from auth.views import AuthView
 from django.contrib import messages
 from django.contrib.auth import aauthenticate, alogin
@@ -42,7 +43,7 @@ class ResetPasswordView(AuthView):
 
         """
         profile = await Profile.objects.filter(
-            forget_password_token=token,
+            forget_password_token=hash_url_token(token),
         ).afirst()
         if not profile:
             await sync_to_async(messages.error)(
@@ -55,7 +56,7 @@ class ResetPasswordView(AuthView):
             profile.forget_password_token_expires_at
             and timezone.now() > profile.forget_password_token_expires_at
         ):
-            profile.forget_password_token = ""
+            profile.forget_password_token = None
             profile.forget_password_token_expires_at = None
             await profile.asave()
             await sync_to_async(messages.error)(
@@ -91,7 +92,7 @@ class ResetPasswordView(AuthView):
         await sync_to_async(user.set_password)(new_password)
         await user.asave()
 
-        profile.forget_password_token = ""
+        profile.forget_password_token = None
         profile.forget_password_token_expires_at = None
         await profile.asave()
 

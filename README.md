@@ -97,6 +97,8 @@ L'environnement Docker local demarre les trois services avec une base
 PostgreSQL dediee par couche:
 
 ```powershell
+Copy-Item .env.example .env
+# Renseigner les cles Django, mots de passe PostgreSQL et DEALDATA_INGEST_TOKEN.
 docker compose up --build
 ```
 
@@ -123,7 +125,7 @@ Endpoints WildFi:
 
 Les endpoints d'ingestion acceptent le header
 `X-DEALDATA-INGEST-TOKEN` quand `DEALDATA_INGEST_TOKEN` est defini.
-En Docker local, la valeur par defaut est `dev-ingest-token`.
+En Docker local, cette variable doit etre renseignee dans `.env`.
 
 Pour connecter directement DEALData aux topics Kafka DEALIoT:
 
@@ -259,8 +261,9 @@ En production, `DJANGO_DEBUG=false` est impose par `docker-compose.prod.yml`.
 - Les metriques exposees par `/metrics/` utilisent un format compatible
   Prometheus.
 - Les migrations doivent etre appliquees par couche avant ouverture du trafic.
-- Les secrets de `.env.example` sont des exemples et ne doivent pas etre
-  reutilises en production.
+- `.env.example` contient les variables attendues avec des valeurs vides.
+  Renseigner `.env` localement ou via le gestionnaire de secrets de
+  l'environnement cible.
 - `docker-compose.dev.yml` et `docker-compose.staging.yml` sont actuellement
   vides. Ils ne modifient donc pas le comportement tant qu'ils ne sont pas
   completes.
