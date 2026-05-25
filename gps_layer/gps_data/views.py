@@ -1,11 +1,13 @@
 """Views for the gps_data application."""
 
-from datetime import UTC
-
-from django.conf import settings
+from dealdata_common.views import (
+    apply_event_filters,
+    batch_ingest_response,
+    ingestion_token_error,
+    parse_list_params,
+)
 from django.db import connections
 from django.http import HttpResponse, JsonResponse
-from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_safe
 from rest_framework import status
 from rest_framework.response import Response
@@ -68,18 +70,6 @@ def metrics(request):
     return HttpResponse(body, content_type="text/plain; version=0.0.4")
 
 
-def _token_error(request) -> Response | None:
-    token = getattr(settings, "DEALDATA_INGEST_TOKEN", "")
-    if not token:
-        return None
-    if request.headers.get("X-DEALDATA-INGEST-TOKEN") == token:
-        return None
-    return Response(
-        {"detail": "Invalid ingestion token."},
-        status=status.HTTP_403_FORBIDDEN,
-    )
-
-
 def _serialize_gps_fix(event: WildFiGPSFix) -> dict[str, object]:
     return {
         "id": str(event.wildfi_gps_fix_id),
@@ -105,27 +95,6 @@ def _serialize_gps_fix(event: WildFiGPSFix) -> dict[str, object]:
     }
 
 
-def _parse_positive_int(value: str | None, default: int, maximum: int) -> int:
-    if value in (None, ""):
-        return default
-    parsed = int(value)
-    if parsed < 0:
-        raise ValueError("Expected a positive integer.")
-    return min(parsed, maximum)
-
-
-def _parse_datetime_filter(value: str | None, field_name: str):
-    if not value:
-        return None
-    parsed = parse_datetime(value)
-    if parsed is None:
-        message = f"Query parameter '{field_name}' must be an ISO datetime."
-        raise ValueError(message)
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
-    return parsed
-
-
 class WildFiGPSIngestView(APIView):
     """Receive decoded WildFi GPS events from DEALIoT."""
 
@@ -134,7 +103,7 @@ class WildFiGPSIngestView(APIView):
 
     def post(self, request) -> Response:
         """Persist one decoded DEALIoT `raw.gps` event idempotently."""
-        token_error = _token_error(request)
+        token_error = ingestion_token_error(request)
         if token_error:
             return token_error
 
@@ -157,23 +126,8 @@ class WildFiGPSListView(APIView):
     def get(self, request) -> Response:
         """Return GPS fixes filtered by device, source, topic and time window."""
         try:
-            limit = _parse_positive_int(
-                request.query_params.get("limit"),
-                default=100,
-                maximum=1000,
-            )
-            offset = _parse_positive_int(
-                request.query_params.get("offset"),
-                default=0,
-                maximum=1_000_000,
-            )
-            started_at = _parse_datetime_filter(
-                request.query_params.get("from"),
-                "from",
-            )
-            ended_at = _parse_datetime_filter(
-                request.query_params.get("to"),
-                "to",
+            limit, offset, started_at, ended_at = parse_list_params(
+                request.query_params,
             )
         except ValueError as exc:
             return Response(
@@ -182,19 +136,12 @@ class WildFiGPSListView(APIView):
             )
 
         queryset = WildFiGPSFix.objects.order_by("-acquisition_time", "-created_at")
-        device_id = request.query_params.get("device_id")
-        if device_id:
-            queryset = queryset.filter(wildfi_device_id=device_id)
-        source = request.query_params.get("source")
-        if source:
-            queryset = queryset.filter(source=source)
-        topic = request.query_params.get("topic")
-        if topic:
-            queryset = queryset.filter(dealiot_topic=topic)
-        if started_at:
-            queryset = queryset.filter(acquisition_time__gte=started_at)
-        if ended_at:
-            queryset = queryset.filter(acquisition_time__lte=ended_at)
+        queryset = apply_event_filters(
+            queryset,
+            request.query_params,
+            started_at,
+            ended_at,
+        )
 
         total = queryset.count()
         rows = queryset[offset : offset + limit]
@@ -216,47 +163,12 @@ class WildFiGPSBatchIngestView(APIView):
 
     def post(self, request) -> Response:
         """Persist decoded DEALIoT `raw.gps` events idempotently."""
-        token_error = _token_error(request)
+        token_error = ingestion_token_error(request)
         if token_error:
             return token_error
 
-        data = request.data
-        if isinstance(data, list):
-            data = {"events": data}
-        if not isinstance(data, dict):
-            return Response(
-                {"detail": "Expected a JSON object or array."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        serializer = WildFiGPSBatchSerializer(data=data)
-        if not serializer.is_valid():
-            return Response(
-                {"detail": serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        results = []
-        inserted = 0
-        duplicates = 0
-        errors = 0
-        for index, event_payload in enumerate(serializer.validated_data["events"]):
-            body, response_status = ingest_dealiot_gps_event(event_payload)
-            result = {"index": index, "status": response_status, **body}
-            results.append(result)
-            if response_status == status.HTTP_201_CREATED:
-                inserted += 1
-            elif response_status == status.HTTP_200_OK and body.get("duplicate"):
-                duplicates += 1
-            else:
-                errors += 1
-
-        return Response(
-            {
-                "inserted": inserted,
-                "duplicates": duplicates,
-                "errors": errors,
-                "results": results,
-            },
-            status=status.HTTP_200_OK if errors == 0 else status.HTTP_207_MULTI_STATUS,
+        return batch_ingest_response(
+            request.data,
+            serializer_class=WildFiGPSBatchSerializer,
+            ingest_event=ingest_dealiot_gps_event,
         )
