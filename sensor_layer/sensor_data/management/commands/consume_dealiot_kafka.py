@@ -39,6 +39,21 @@ def _close_stale_connections() -> None:
         close_old_connections()
 
 
+def _load_kafka_consumer():
+    try:
+        from kafka import KafkaConsumer
+    except ImportError as exc:
+        raise CommandError(
+            "kafka-python is required to consume DEALIoT Kafka topics.",
+        ) from exc
+    return KafkaConsumer
+
+
+def _iter_messages(records):
+    for messages in records.values():
+        yield from messages
+
+
 class Command(BaseCommand):
     """Consume Kafka messages and persist them through the sensor ingestion path."""
 
@@ -100,82 +115,86 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options) -> None:
         del args
-        try:
-            from kafka import KafkaConsumer
-        except ImportError as exc:
-            raise CommandError(
-                "kafka-python is required to consume DEALIoT Kafka topics.",
-            ) from exc
-
-        bootstrap_servers = _csv(options["bootstrap_servers"])
-        if not bootstrap_servers:
-            raise CommandError("At least one Kafka bootstrap server is required.")
-
-        consumer = KafkaConsumer(
-            options["topic"],
-            bootstrap_servers=bootstrap_servers,
-            group_id=options["group_id"],
-            enable_auto_commit=False,
-            auto_offset_reset=options["auto_offset_reset"],
-        )
+        consumer = self._build_consumer(options)
         self.stdout.write(
             "Consuming DEALIoT sensor events "
             f"topic={options['topic']} group_id={options['group_id']}",
         )
 
         try:
-            while True:
-                records = consumer.poll(
-                    timeout_ms=options["poll_timeout_ms"],
-                    max_records=options["max_records"],
-                )
-                if not records:
-                    if options["once"]:
-                        break
-                    continue
-
-                inserted = 0
-                duplicates = 0
-                rejected = 0
-                for messages in records.values():
-                    for message in messages:
-                        payload = _decode_json(message.value)
-                        if payload is None:
-                            rejected += 1
-                            self.stderr.write(
-                                "Rejected non-object or invalid JSON Kafka message "
-                                f"topic={message.topic} partition={message.partition} "
-                                f"offset={message.offset}",
-                            )
-                            continue
-
-                        _close_stale_connections()
-                        body, response_status = ingest_dealiot_sensor_event(payload)
-                        if response_status == status.HTTP_201_CREATED:
-                            inserted += 1
-                        elif response_status == status.HTTP_200_OK and body.get(
-                            "duplicate",
-                        ):
-                            duplicates += 1
-                        elif response_status == status.HTTP_400_BAD_REQUEST:
-                            rejected += 1
-                            self.stderr.write(
-                                "Rejected DEALIoT sensor event "
-                                f"offset={message.offset} detail={body.get('detail')}",
-                            )
-                        else:
-                            raise CommandError(
-                                "Unexpected sensor ingestion response "
-                                f"status={response_status} body={body}",
-                            )
-
-                consumer.commit()
-                self.stdout.write(
-                    "Processed DEALIoT sensor Kafka batch "
-                    f"inserted={inserted} duplicates={duplicates} "
-                    f"rejected={rejected}",
-                )
-                if options["once"]:
-                    break
+            self._consume_batches(consumer, options)
         finally:
             consumer.close()
+
+    def _build_consumer(self, options):
+        bootstrap_servers = _csv(options["bootstrap_servers"])
+        if not bootstrap_servers:
+            raise CommandError("At least one Kafka bootstrap server is required.")
+
+        KafkaConsumer = _load_kafka_consumer()
+        return KafkaConsumer(
+            options["topic"],
+            bootstrap_servers=bootstrap_servers,
+            group_id=options["group_id"],
+            enable_auto_commit=False,
+            auto_offset_reset=options["auto_offset_reset"],
+        )
+
+    def _consume_batches(self, consumer, options) -> None:
+        while True:
+            records = consumer.poll(
+                timeout_ms=options["poll_timeout_ms"],
+                max_records=options["max_records"],
+            )
+            if not records:
+                if options["once"]:
+                    return
+                continue
+
+            counts = self._process_records(records)
+            consumer.commit()
+            self.stdout.write(
+                "Processed DEALIoT sensor Kafka batch "
+                f"inserted={counts['inserted']} "
+                f"duplicates={counts['duplicates']} "
+                f"rejected={counts['rejected']}",
+            )
+            if options["once"]:
+                return
+
+    def _process_records(self, records) -> dict[str, int]:
+        counts = {"inserted": 0, "duplicates": 0, "rejected": 0}
+        for message in _iter_messages(records):
+            counts[self._process_message(message)] += 1
+        return counts
+
+    def _process_message(self, message) -> str:
+        payload = _decode_json(message.value)
+        if payload is None:
+            self._write_rejected_json(message)
+            return "rejected"
+
+        _close_stale_connections()
+        body, response_status = ingest_dealiot_sensor_event(payload)
+        if response_status == status.HTTP_201_CREATED:
+            return "inserted"
+        if response_status == status.HTTP_200_OK and body.get("duplicate"):
+            return "duplicates"
+        if response_status == status.HTTP_400_BAD_REQUEST:
+            self.stderr.write(
+                "Rejected DEALIoT sensor event "
+                f"offset={message.offset} detail={body.get('detail')}",
+            )
+            return "rejected"
+
+        raise CommandError(
+            "Unexpected sensor ingestion response "
+            f"status={response_status} body={body}",
+        )
+
+    def _write_rejected_json(self, message) -> None:
+        self.stderr.write(
+            "Rejected non-object or invalid JSON Kafka message "
+            f"topic={message.topic} partition={message.partition} "
+            f"offset={message.offset}",
+        )
