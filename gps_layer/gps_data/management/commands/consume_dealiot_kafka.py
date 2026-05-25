@@ -128,8 +128,8 @@ class Command(BaseCommand):
         if not bootstrap_servers:
             raise CommandError("At least one Kafka bootstrap server is required.")
 
-        KafkaConsumer = _load_kafka_consumer()
-        return KafkaConsumer(
+        kafka_consumer = _load_kafka_consumer()
+        return kafka_consumer(
             options["topic"],
             bootstrap_servers=bootstrap_servers,
             group_id=options["group_id"],
