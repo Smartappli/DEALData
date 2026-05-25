@@ -2,95 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-import hashlib
-import json
 from typing import Any, ClassVar
-from uuid import UUID
 
+from dealdata_common.models import (
+    OBSERVED_OBJECT_ID_HELP_TEXT,
+    OBSERVED_OBJECT_ID_VERBOSE_NAME,
+    WildFiEventBase,
+    event_float as _event_float,
+    event_identity_payload,
+    event_metadata as _event_metadata,
+    parse_event_datetime as _parse_event_datetime,
+    parse_optional_event_datetime as _parse_optional_event_datetime,
+    payload_dict as _payload_dict,
+    stable_event_hash as _stable_event_hash,
+    uuid7_value,
+)
 from django.db import models
 from django.db.models import F
-from django.utils.dateparse import parse_datetime
-from uuid_utils import uuid7
-
-
-OBSERVED_OBJECT_ID_VERBOSE_NAME = "Observed Object ID"
-OBSERVED_OBJECT_ID_HELP_TEXT = "UUID of the observed object managed by the core layer."
-
-
-def uuid7_value() -> UUID:
-    """Return a UUIDv7 value compatible with Django UUIDField."""
-    return UUID(str(uuid7()))
-
-
-def _parse_event_datetime(value: Any, field_name: str) -> datetime:
-    """Parse an ISO datetime from a DEALIoT event."""
-    if isinstance(value, datetime):
-        parsed = value
-    elif isinstance(value, str):
-        parsed = parse_datetime(value)
-    else:
-        parsed = None
-
-    if parsed is None:
-        message = f"DEALIoT event field '{field_name}' must be an ISO datetime."
-        raise ValueError(message)
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
-    return parsed
-
-
-def _parse_optional_event_datetime(value: Any, field_name: str) -> datetime | None:
-    """Parse an optional ISO datetime from a DEALIoT event."""
-    if value in (None, ""):
-        return None
-    return _parse_event_datetime(value, field_name)
-
-
-def _payload_dict(value: Any) -> dict[str, Any]:
-    """Keep decoded payloads queryable while preserving scalar values."""
-    if isinstance(value, dict):
-        return value
-    if value in (None, ""):
-        return {}
-    return {"value": value}
-
-
-def _event_float(
-    event: dict[str, Any],
-    payload: dict[str, Any],
-    *field_names: str,
-    required: bool = False,
-) -> float | None:
-    """Extract a float from top-level DEALIoT fields or decoded payload."""
-    for field_name in field_names:
-        value = event.get(field_name)
-        if value in (None, ""):
-            value = payload.get(field_name)
-        if value not in (None, ""):
-            return float(value)
-    if required:
-        names = ", ".join(field_names)
-        message = f"DEALIoT event must contain one of: {names}."
-        raise ValueError(message)
-    return None
-
-
-def _event_metadata(event: dict[str, Any]) -> dict[str, Any]:
-    """Keep transport metadata from MQTT/Kafka without shaping it too early."""
-    metadata_fields = ("qos", "retain", "partition", "offset", "key")
-    return {field: event[field] for field in metadata_fields if field in event}
-
-
-def _stable_event_hash(event: dict[str, Any]) -> str:
-    """Build a stable idempotency hash for a decoded DEALIoT event."""
-    serialized = json.dumps(
-        event,
-        sort_keys=True,
-        separators=(",", ":"),
-        default=str,
-    )
-    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 class GPSSensor(models.Model):
@@ -257,7 +185,7 @@ class GPSRawData(models.Model):
         db_table = "gps_raw_data"
 
 
-class WildFiGPSFix(models.Model):
+class WildFiGPSFix(WildFiEventBase):
     """Decoded WildFi GPS event received from DEALIoT."""
 
     wildfi_gps_fix_id = models.UUIDField(
@@ -265,48 +193,16 @@ class WildFiGPSFix(models.Model):
         default=uuid7_value,
         editable=False,
     )
-    wildfi_device_id = models.CharField(max_length=128, db_index=True)
-    event_id = models.CharField(
-        max_length=128,
-        blank=True,
-        db_index=True,
-        help_text="Optional upstream DEALIoT/Kafka event identifier.",
-    )
-    message_key = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Optional Kafka or MQTT key used by DEALIoT.",
-    )
-    payload_hash = models.CharField(
-        max_length=64,
-        blank=True,
-        db_index=True,
-        help_text="Stable SHA-256 hash used for idempotent ingestion.",
-    )
-    observed_object_id = models.UUIDField(
-        null=True,
-        blank=True,
-        verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
-        help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
-    )
     dealiot_topic = models.CharField(
         max_length=64,
         default="raw.gps",
         db_index=True,
     )
-    source = models.CharField(max_length=64, default="wildfi-mqtt")
-    mqtt_topic = models.CharField(max_length=255, blank=True)
-    acquisition_time = models.DateTimeField(db_index=True)
-    ingested_at = models.DateTimeField(null=True, blank=True)
     latitude = models.FloatField()
     longitude = models.FloatField()
     altitude = models.FloatField(null=True, blank=True)
     speed = models.FloatField(null=True, blank=True)
     heading = models.FloatField(null=True, blank=True)
-    payload = models.JSONField(default=dict, blank=True)
-    message_metadata = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         """Model metadata for decoded WildFi GPS fixes."""
@@ -417,19 +313,14 @@ class WildFiGPSFix(models.Model):
     def save(self, *args, **kwargs):
         """Ensure directly-created events still have an idempotency hash."""
         if not self.payload_hash:
-            payload = {
-                "device_id": self.wildfi_device_id,
-                "timestamp": self.acquisition_time,
-                "topic": self.dealiot_topic,
-                "source": self.source,
-                "mqtt_topic": self.mqtt_topic,
-                "latitude": self.latitude,
-                "longitude": self.longitude,
-                "altitude": self.altitude,
-                "speed": self.speed,
-                "heading": self.heading,
-                "payload": self.payload,
-            }
+            payload = event_identity_payload(
+                self,
+                latitude=self.latitude,
+                longitude=self.longitude,
+                altitude=self.altitude,
+                speed=self.speed,
+                heading=self.heading,
+            )
             self.payload_hash = _stable_event_hash(payload)
         super().save(*args, **kwargs)
 
