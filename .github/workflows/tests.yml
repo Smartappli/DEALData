@@ -116,6 +116,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     services:
       postgres:
         image: postgres:18-alpine
@@ -163,7 +165,7 @@ jobs:
             pytest-django
 
       - name: Compile Python files
-        run: python -m compileall -q ${{ matrix.layer }}
+        run: python -m compileall -q dealdata_common ${{ matrix.layer }}
 
       - name: Django check
         working-directory: ${{ matrix.layer }}
@@ -237,4 +239,4 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Build image
-        run: docker build --pull ./${{ matrix.layer }}
+        run: docker build --pull -f ${{ matrix.layer }}/Dockerfile .

@@ -15,22 +15,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
-COPY ./requirements.lock ./
+COPY ./core_layer/requirements.lock ./
 RUN pip install --no-cache-dir --require-hashes --only-binary :all: -r requirements.lock
 
 # Copy only application files needed at runtime.
-COPY ./manage.py ./manage.py
-COPY ./auth/*.py ./auth/
-COPY ./auth/forgot_password/*.py ./auth/forgot_password/
-COPY ./auth/login/*.py ./auth/login/
-COPY ./auth/migrations/*.py ./auth/migrations/
-COPY ./auth/register/*.py ./auth/register/
-COPY ./auth/reset_password/*.py ./auth/reset_password/
-COPY ./auth/verify_email/*.py ./auth/verify_email/
-COPY ./core/*.py ./core/
-COPY ./core_data/*.py ./core_data/
-COPY ./core_data/migrations/*.py ./core_data/migrations/
-COPY ./entrypoint.sh /entrypoint.sh
+COPY ./dealdata_common/*.py ./dealdata_common/
+COPY ./core_layer/manage.py ./manage.py
+COPY ./core_layer/auth/*.py ./auth/
+COPY ./core_layer/auth/forgot_password/*.py ./auth/forgot_password/
+COPY ./core_layer/auth/login/*.py ./auth/login/
+COPY ./core_layer/auth/migrations/*.py ./auth/migrations/
+COPY ./core_layer/auth/register/*.py ./auth/register/
+COPY ./core_layer/auth/reset_password/*.py ./auth/reset_password/
+COPY ./core_layer/auth/verify_email/*.py ./auth/verify_email/
+COPY ./core_layer/core/*.py ./core/
+COPY ./core_layer/core_data/*.py ./core_data/
+COPY ./core_layer/core_data/migrations/*.py ./core_data/migrations/
+COPY ./core_layer/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh \
     && useradd -m appuser \

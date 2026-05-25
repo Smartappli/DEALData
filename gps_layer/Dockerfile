@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy and install Python dependencies
-COPY ./requirements.lock ./
+COPY ./gps_layer/requirements.lock ./
 RUN pip install --prefix=/install --no-cache-dir --require-hashes --only-binary :all: -r requirements.lock \
  && find /install -name "*.pyc" -delete \
  && find /install -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
@@ -46,14 +46,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && chown -R appuser:appuser /app
 
 # Copy only application files needed at runtime.
-COPY ./manage.py ./manage.py
-COPY ./__init__.py ./__init__.py
-COPY ./gps/*.py ./gps/
-COPY ./gps_data/*.py ./gps_data/
-COPY ./gps_data/management/*.py ./gps_data/management/
-COPY ./gps_data/management/commands/*.py ./gps_data/management/commands/
-COPY ./gps_data/migrations/*.py ./gps_data/migrations/
-COPY ./entrypoint.sh /entrypoint.sh
+COPY ./dealdata_common/*.py ./dealdata_common/
+COPY ./gps_layer/manage.py ./manage.py
+COPY ./gps_layer/__init__.py ./__init__.py
+COPY ./gps_layer/gps/*.py ./gps/
+COPY ./gps_layer/gps_data/*.py ./gps_data/
+COPY ./gps_layer/gps_data/management/*.py ./gps_data/management/
+COPY ./gps_layer/gps_data/management/commands/*.py ./gps_data/management/commands/
+COPY ./gps_layer/gps_data/migrations/*.py ./gps_data/migrations/
+COPY ./gps_layer/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh \
     && chown appuser:appuser /entrypoint.sh \
