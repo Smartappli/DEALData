@@ -192,3 +192,32 @@ class DealIotKafkaCommand(BaseCommand):
             f"topic={message.topic} partition={message.partition} "
             f"offset={message.offset}",
         )
+
+
+def build_dealiot_kafka_command(
+    *,
+    service_key: str,
+    event_label: str,
+    model_path: str,
+    ingest_event: Callable[[dict[str, Any]], tuple[dict[str, Any], int]],
+):
+    """Create a Django management command for one DEALIoT event stream."""
+    service_env = service_key.upper()
+    command_attrs = {
+        "help": (
+            f"Consume DEALIoT Kafka raw.{service_key} events into {model_path}."
+        ),
+        "bootstrap_servers_env": (
+            f"DEALDATA_{service_env}_KAFKA_BOOTSTRAP_SERVERS"
+        ),
+        "topic_env": f"DEALDATA_{service_env}_KAFKA_TOPIC",
+        "group_id_env": f"DEALDATA_{service_env}_KAFKA_GROUP_ID",
+        "auto_offset_reset_env": (
+            f"DEALDATA_{service_env}_KAFKA_AUTO_OFFSET_RESET"
+        ),
+        "default_topic": f"raw.{service_key}",
+        "default_group_id": f"dealdata-{service_key}-ingest",
+        "event_label": event_label,
+        "ingest_event": staticmethod(ingest_event),
+    }
+    return type("Command", (DealIotKafkaCommand,), command_attrs)
