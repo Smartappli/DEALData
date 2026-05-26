@@ -2,8 +2,10 @@
 
 from io import StringIO
 import json
+from secrets import token_urlsafe
 import sys
 import types
+from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
@@ -11,6 +13,8 @@ from django.core.management import call_command
 from django.test import Client
 from rest_framework.test import APIClient
 from sensor_data.models import Sensor, SensorData, WildFiDecodedSensorEvent
+
+CHECK = TestCase()
 
 
 def test_sensor_string_representation() -> None:
@@ -21,14 +25,14 @@ def test_sensor_string_representation() -> None:
         sensor_code="SENSOR-001",
     )
 
-    assert str(sensor) == "SENSOR-001"
+    CHECK.assertEqual(str(sensor), "SENSOR-001")
 
 
 def test_sensor_data_string_representation() -> None:
     """Sensor data values are rendered as strings."""
     sensor_data = SensorData(sensor_data_value={"temperature": 18.5})
 
-    assert str(sensor_data) == "{'temperature': 18.5}"
+    CHECK.assertEqual(str(sensor_data), "{'temperature': 18.5}")
 
 
 def test_wildfi_sensor_event_from_dealiot_event() -> None:
@@ -50,12 +54,12 @@ def test_wildfi_sensor_event_from_dealiot_event() -> None:
 
     sensor_event = WildFiDecodedSensorEvent.from_dealiot_event(event)
 
-    assert sensor_event.wildfi_device_id == "wildfi-17"
-    assert sensor_event.dealiot_topic == "raw.sensor"
-    assert sensor_event.sensor_type == "temperature"
-    assert sensor_event.payload["value"] == 18.5
-    assert sensor_event.message_metadata == {"qos": 1, "retain": False}
-    assert sensor_event.payload_hash
+    CHECK.assertEqual(sensor_event.wildfi_device_id, "wildfi-17")
+    CHECK.assertEqual(sensor_event.dealiot_topic, "raw.sensor")
+    CHECK.assertEqual(sensor_event.sensor_type, "temperature")
+    CHECK.assertEqual(sensor_event.payload["value"], 18.5)
+    CHECK.assertEqual(sensor_event.message_metadata, {"qos": 1, "retain": False})
+    CHECK.assertTrue(sensor_event.payload_hash)
 
 
 @pytest.mark.django_db
@@ -84,10 +88,10 @@ def test_wildfi_sensor_ingest_is_idempotent() -> None:
         format="json",
     )
 
-    assert first_response.status_code == 201
-    assert second_response.status_code == 200
-    assert second_response.data["duplicate"] is True
-    assert WildFiDecodedSensorEvent.objects.count() == 1
+    CHECK.assertEqual(first_response.status_code, 201)
+    CHECK.assertEqual(second_response.status_code, 200)
+    CHECK.assertIs(second_response.data["duplicate"], True)
+    CHECK.assertEqual(WildFiDecodedSensorEvent.objects.count(), 1)
 
 
 @pytest.mark.django_db
@@ -117,9 +121,9 @@ def test_wildfi_sensor_type_is_inferred_from_dealiot_mqtt_topic() -> None:
     sensor_event = WildFiDecodedSensorEvent.objects.get(
         event_id="sensor-event-imu-topic",
     )
-    assert response.status_code == 201
-    assert response.data["sensor_type"] == "imu"
-    assert sensor_event.sensor_type == "imu"
+    CHECK.assertEqual(response.status_code, 201)
+    CHECK.assertEqual(response.data["sensor_type"], "imu")
+    CHECK.assertEqual(sensor_event.sensor_type, "imu")
 
 
 @pytest.mark.django_db
@@ -140,8 +144,8 @@ def test_wildfi_sensor_type_prefers_explicit_payload_value() -> None:
         format="json",
     )
 
-    assert response.status_code == 201
-    assert response.data["sensor_type"] == "temperature"
+    CHECK.assertEqual(response.status_code, 201)
+    CHECK.assertEqual(response.data["sensor_type"], "temperature")
 
 
 @pytest.mark.django_db
@@ -200,9 +204,9 @@ def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
     sensor_event = WildFiDecodedSensorEvent.objects.get(
         event_id="sensor-event-kafka",
     )
-    assert sensor_event.sensor_type == "environment"
-    assert FakeKafkaConsumer.instances[0].committed is True
-    assert FakeKafkaConsumer.instances[0].closed is True
+    CHECK.assertEqual(sensor_event.sensor_type, "environment")
+    CHECK.assertIs(FakeKafkaConsumer.instances[0].committed, True)
+    CHECK.assertIs(FakeKafkaConsumer.instances[0].closed, True)
 
 
 @pytest.mark.django_db
@@ -226,11 +230,11 @@ def test_wildfi_sensor_batch_ingest_accepts_duplicates() -> None:
         format="json",
     )
 
-    assert response.status_code == 200
-    assert response.data["inserted"] == 1
-    assert response.data["duplicates"] == 1
-    assert response.data["errors"] == 0
-    assert WildFiDecodedSensorEvent.objects.count() == 1
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.data["inserted"], 1)
+    CHECK.assertEqual(response.data["duplicates"], 1)
+    CHECK.assertEqual(response.data["errors"], 0)
+    CHECK.assertEqual(WildFiDecodedSensorEvent.objects.count(), 1)
 
 
 def test_wildfi_sensor_ingest_rejects_scalar_payload() -> None:
@@ -248,14 +252,14 @@ def test_wildfi_sensor_ingest_rejects_scalar_payload() -> None:
         format="json",
     )
 
-    assert response.status_code == 400
-    assert "payload" in str(response.data["detail"])
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertIn("payload", str(response.data["detail"]))
 
 
 @pytest.mark.django_db
 def test_wildfi_sensor_ingest_rejects_invalid_token(settings) -> None:
     """Ingestion rejects requests with a wrong shared token."""
-    settings.DEALDATA_INGEST_TOKEN = "expected-token"
+    settings.DEALDATA_INGEST_TOKEN = token_urlsafe(32)
     client = APIClient()
     event = {
         "device_id": "wildfi-17",
@@ -267,11 +271,11 @@ def test_wildfi_sensor_ingest_rejects_invalid_token(settings) -> None:
         "/api/ingest/wildfi/sensor/",
         event,
         format="json",
-        HTTP_X_DEALDATA_INGEST_TOKEN="wrong-token",
+        HTTP_X_DEALDATA_INGEST_TOKEN=f"wrong-{settings.DEALDATA_INGEST_TOKEN}",
     )
 
-    assert response.status_code == 403
-    assert WildFiDecodedSensorEvent.objects.count() == 0
+    CHECK.assertEqual(response.status_code, 403)
+    CHECK.assertEqual(WildFiDecodedSensorEvent.objects.count(), 0)
 
 
 @pytest.mark.django_db
@@ -291,8 +295,8 @@ def test_wildfi_sensor_batch_ingest_accepts_array_body() -> None:
         format="json",
     )
 
-    assert response.status_code == 200
-    assert response.data["inserted"] == 1
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.data["inserted"], 1)
 
 
 @pytest.mark.django_db
@@ -325,18 +329,18 @@ def test_wildfi_sensor_list_filters_by_device_type_and_time() -> None:
         },
     )
 
-    assert response.status_code == 200
-    assert response.data["count"] == 1
-    assert response.data["results"][0]["sensor_type"] == "temperature"
-    assert response.data["results"][0]["payload"]["value"] == 18.5
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.data["count"], 1)
+    CHECK.assertEqual(response.data["results"][0]["sensor_type"], "temperature")
+    CHECK.assertEqual(response.data["results"][0]["payload"]["value"], 18.5)
 
 
 def test_wildfi_sensor_list_rejects_invalid_datetime() -> None:
     """Sensor list endpoint validates date filters."""
     response = APIClient().get("/api/wildfi/sensor/", {"from": "not-a-date"})
 
-    assert response.status_code == 400
-    assert "from" in response.data["detail"]
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertIn("from", response.data["detail"])
 
 
 @pytest.mark.django_db
@@ -353,8 +357,11 @@ def test_sensor_metrics_exposes_prometheus_counts() -> None:
 
     response = Client().get("/metrics/")
 
-    assert response.status_code == 200
-    assert "dealdata_sensor_wildfi_events_total 1" in response.content.decode()
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertIn(
+        "dealdata_sensor_wildfi_events_total 1",
+        response.content.decode(),
+    )
 
 
 @pytest.mark.django_db
@@ -362,8 +369,8 @@ def test_health_ready_reports_database_available() -> None:
     """Readiness checks database access."""
     response = Client().get("/health/ready/")
 
-    assert response.status_code == 200
-    assert response.json()["database"] == "available"
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.json()["database"], "available")
 
 
 @pytest.mark.parametrize(
@@ -374,8 +381,8 @@ def test_observability_endpoints_reject_unsafe_methods(path: str) -> None:
     """Read-only observability endpoints reject unsafe HTTP methods."""
     response = Client().post(path)
 
-    assert response.status_code == 405
-    assert response.headers["Allow"] == "GET, HEAD"
+    CHECK.assertEqual(response.status_code, 405)
+    CHECK.assertEqual(response.headers["Allow"], "GET, HEAD")
 
 
 @pytest.mark.django_db
@@ -392,4 +399,4 @@ def test_sensor_event_direct_save_populates_payload_hash() -> None:
 
     event.save()
 
-    assert event.payload_hash
+    CHECK.assertTrue(event.payload_hash)

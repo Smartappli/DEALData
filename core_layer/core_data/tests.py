@@ -1,5 +1,7 @@
 """Tests for the core_data application."""
 
+from unittest import TestCase
+
 import pytest
 from core_data.models import (
     Experiment,
@@ -14,26 +16,28 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import Client
 
+CHECK = TestCase()
+
 
 def test_project_string_representation() -> None:
     """Project instances are represented by their code."""
     project = Project(project_code="DEAL-CORE")
 
-    assert str(project) == "DEAL-CORE"
+    CHECK.assertEqual(str(project), "DEAL-CORE")
 
 
 def test_observed_object_string_representation() -> None:
     """Observed objects are represented by their code."""
     observed_object = ObservedObject(observed_object_code="OBJ-001")
 
-    assert str(observed_object) == "OBJ-001"
+    CHECK.assertEqual(str(observed_object), "OBJ-001")
 
 
 def test_uuid7_value_returns_standard_uuid() -> None:
     """UUID defaults are compatible with Django UUIDField validation."""
     value = uuid7_value()
 
-    assert value.version == 7
+    CHECK.assertEqual(value.version, 7)
 
 
 @pytest.mark.django_db
@@ -50,7 +54,7 @@ def test_project_membership_string_representation() -> None:
         project_membership_role=ProjectRole.OWNER,
     )
 
-    assert str(membership) == "DEAL-001 - alice - owner"
+    CHECK.assertEqual(str(membership), "DEAL-001 - alice - owner")
 
 
 @pytest.mark.django_db
@@ -93,7 +97,7 @@ def test_project_owners_qs_returns_active_owners() -> None:
         project_membership_role=ProjectRole.VIEWER,
     )
 
-    assert list(project.project_owners_qs()) == [owner]
+    CHECK.assertEqual(list(project.project_owners_qs()), [owner])
 
 
 @pytest.mark.django_db
@@ -113,8 +117,9 @@ def test_experiment_links_string_representations() -> None:
         experiment_observed_object_observed_object=observed_object,
     )
 
-    assert str(experiment) == str(experiment.experiment_id)
-    assert str(link) == (
+    CHECK.assertEqual(str(experiment), str(experiment.experiment_id))
+    CHECK.assertEqual(
+        str(link),
         f"{experiment.experiment_id} - {observed_object.observed_object_id}"
     )
 
@@ -123,8 +128,8 @@ def test_health_live() -> None:
     """The liveness endpoint returns a cheap OK response."""
     response = Client().get("/health/live/")
 
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.json()["status"], "ok")
 
 
 def test_health_ready(db) -> None:
@@ -132,8 +137,8 @@ def test_health_ready(db) -> None:
     del db
     response = Client().get("/health/ready/")
 
-    assert response.status_code == 200
-    assert response.json()["database"] == "available"
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.json()["database"], "available")
 
 
 @pytest.mark.parametrize(
@@ -144,8 +149,8 @@ def test_observability_endpoints_reject_unsafe_methods(path: str) -> None:
     """Read-only observability endpoints reject unsafe HTTP methods."""
     response = Client().post(path)
 
-    assert response.status_code == 405
-    assert response.headers["Allow"] == "GET, HEAD"
+    CHECK.assertEqual(response.status_code, 405)
+    CHECK.assertEqual(response.headers["Allow"], "GET, HEAD")
 
 
 @pytest.mark.django_db
@@ -161,6 +166,6 @@ def test_metrics_exposes_prometheus_counts() -> None:
     response = Client().get("/metrics/")
     text = response.content.decode()
 
-    assert response.status_code == 200
-    assert "dealdata_core_projects_total 1" in text
-    assert "dealdata_core_observed_objects_total 1" in text
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertIn("dealdata_core_projects_total 1", text)
+    CHECK.assertIn("dealdata_core_observed_objects_total 1", text)

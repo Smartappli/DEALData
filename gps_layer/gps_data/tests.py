@@ -2,8 +2,10 @@
 
 from io import StringIO
 import json
+from secrets import token_urlsafe
 import sys
 import types
+from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
@@ -13,12 +15,14 @@ from django.test import Client
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+CHECK = TestCase()
+
 
 def test_gps_sensor_string_representation() -> None:
     """GPS sensors are represented by their code."""
     gps_sensor = GPSSensor(gps_sensors_code="GPS-001")
 
-    assert str(gps_sensor) == "GPS-001"
+    CHECK.assertEqual(str(gps_sensor), "GPS-001")
 
 
 def test_wildfi_gps_fix_from_dealiot_event() -> None:
@@ -39,17 +43,20 @@ def test_wildfi_gps_fix_from_dealiot_event() -> None:
 
     gps_fix = WildFiGPSFix.from_dealiot_event(event)
 
-    assert gps_fix.wildfi_device_id == "wildfi-17"
-    assert gps_fix.dealiot_topic == "raw.gps"
-    assert gps_fix.latitude == 50.6333
-    assert gps_fix.longitude == 5.5667
-    assert gps_fix.payload == {"fix": 3, "hdop": 0.9}
-    assert gps_fix.message_metadata == {"qos": 1, "retain": False}
-    assert gps_fix.as_geojson() == {
-        "type": "Point",
-        "coordinates": [5.5667, 50.6333],
-    }
-    assert gps_fix.payload_hash
+    CHECK.assertEqual(gps_fix.wildfi_device_id, "wildfi-17")
+    CHECK.assertEqual(gps_fix.dealiot_topic, "raw.gps")
+    CHECK.assertEqual(gps_fix.latitude, 50.6333)
+    CHECK.assertEqual(gps_fix.longitude, 5.5667)
+    CHECK.assertEqual(gps_fix.payload, {"fix": 3, "hdop": 0.9})
+    CHECK.assertEqual(gps_fix.message_metadata, {"qos": 1, "retain": False})
+    CHECK.assertEqual(
+        gps_fix.as_geojson(),
+        {
+            "type": "Point",
+            "coordinates": [5.5667, 50.6333],
+        },
+    )
+    CHECK.assertTrue(gps_fix.payload_hash)
 
 
 @pytest.mark.django_db
@@ -76,10 +83,10 @@ def test_wildfi_gps_ingest_is_idempotent() -> None:
         format="json",
     )
 
-    assert first_response.status_code == 201
-    assert second_response.status_code == 200
-    assert second_response.data["duplicate"] is True
-    assert WildFiGPSFix.objects.count() == 1
+    CHECK.assertEqual(first_response.status_code, 201)
+    CHECK.assertEqual(second_response.status_code, 200)
+    CHECK.assertIs(second_response.data["duplicate"], True)
+    CHECK.assertEqual(WildFiGPSFix.objects.count(), 1)
 
 
 @pytest.mark.django_db
@@ -107,10 +114,10 @@ def test_wildfi_gps_ingest_accepts_dealiot_metric_aliases() -> None:
     )
 
     gps_fix = WildFiGPSFix.objects.get(event_id="gps-event-dealiot-aliases")
-    assert response.status_code == 201
-    assert gps_fix.altitude == 411.2
-    assert gps_fix.speed == 1.8
-    assert gps_fix.heading == 84.5
+    CHECK.assertEqual(response.status_code, 201)
+    CHECK.assertEqual(gps_fix.altitude, 411.2)
+    CHECK.assertEqual(gps_fix.speed, 1.8)
+    CHECK.assertEqual(gps_fix.heading, 84.5)
 
 
 @pytest.mark.django_db
@@ -168,9 +175,9 @@ def test_dealiot_kafka_consumer_persists_gps_event() -> None:
         )
 
     gps_fix = WildFiGPSFix.objects.get(event_id="gps-event-kafka")
-    assert gps_fix.altitude == 411.2
-    assert FakeKafkaConsumer.instances[0].committed is True
-    assert FakeKafkaConsumer.instances[0].closed is True
+    CHECK.assertEqual(gps_fix.altitude, 411.2)
+    CHECK.assertIs(FakeKafkaConsumer.instances[0].committed, True)
+    CHECK.assertIs(FakeKafkaConsumer.instances[0].closed, True)
 
 
 @pytest.mark.django_db
@@ -192,11 +199,11 @@ def test_wildfi_gps_batch_ingest_accepts_duplicates() -> None:
         format="json",
     )
 
-    assert response.status_code == 200
-    assert response.data["inserted"] == 1
-    assert response.data["duplicates"] == 1
-    assert response.data["errors"] == 0
-    assert WildFiGPSFix.objects.count() == 1
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.data["inserted"], 1)
+    CHECK.assertEqual(response.data["duplicates"], 1)
+    CHECK.assertEqual(response.data["errors"], 0)
+    CHECK.assertEqual(WildFiGPSFix.objects.count(), 1)
 
 
 def test_wildfi_gps_ingest_rejects_missing_longitude() -> None:
@@ -215,14 +222,14 @@ def test_wildfi_gps_ingest_rejects_missing_longitude() -> None:
         format="json",
     )
 
-    assert response.status_code == 400
-    assert "longitude" in str(response.data["detail"])
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertIn("longitude", str(response.data["detail"]))
 
 
 @pytest.mark.django_db
 def test_wildfi_gps_ingest_rejects_invalid_token(settings) -> None:
     """Ingestion rejects requests with a wrong shared token."""
-    settings.DEALDATA_INGEST_TOKEN = "expected-token"
+    settings.DEALDATA_INGEST_TOKEN = token_urlsafe(32)
     client = APIClient()
     event = {
         "device_id": "wildfi-17",
@@ -236,11 +243,11 @@ def test_wildfi_gps_ingest_rejects_invalid_token(settings) -> None:
         "/api/ingest/wildfi/gps/",
         event,
         format="json",
-        HTTP_X_DEALDATA_INGEST_TOKEN="wrong-token",
+        HTTP_X_DEALDATA_INGEST_TOKEN=f"wrong-{settings.DEALDATA_INGEST_TOKEN}",
     )
 
-    assert response.status_code == 403
-    assert WildFiGPSFix.objects.count() == 0
+    CHECK.assertEqual(response.status_code, 403)
+    CHECK.assertEqual(WildFiGPSFix.objects.count(), 0)
 
 
 @pytest.mark.django_db
@@ -262,8 +269,8 @@ def test_wildfi_gps_batch_ingest_accepts_array_body() -> None:
         format="json",
     )
 
-    assert response.status_code == 200
-    assert response.data["inserted"] == 1
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.data["inserted"], 1)
 
 
 @pytest.mark.django_db
@@ -299,21 +306,24 @@ def test_wildfi_gps_list_filters_by_device_and_time() -> None:
         },
     )
 
-    assert response.status_code == 200
-    assert response.data["count"] == 1
-    assert response.data["results"][0]["device_id"] == "wildfi-17"
-    assert response.data["results"][0]["geojson"] == {
-        "type": "Point",
-        "coordinates": [5.5667, 50.6333],
-    }
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.data["count"], 1)
+    CHECK.assertEqual(response.data["results"][0]["device_id"], "wildfi-17")
+    CHECK.assertEqual(
+        response.data["results"][0]["geojson"],
+        {
+            "type": "Point",
+            "coordinates": [5.5667, 50.6333],
+        },
+    )
 
 
 def test_wildfi_gps_list_rejects_invalid_datetime() -> None:
     """GPS list endpoint validates date filters."""
     response = APIClient().get("/api/wildfi/gps/", {"from": "not-a-date"})
 
-    assert response.status_code == 400
-    assert "from" in response.data["detail"]
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertIn("from", response.data["detail"])
 
 
 @pytest.mark.django_db
@@ -332,8 +342,8 @@ def test_gps_metrics_exposes_prometheus_counts() -> None:
 
     response = Client().get("/metrics/")
 
-    assert response.status_code == 200
-    assert "dealdata_gps_wildfi_events_total 1" in response.content.decode()
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertIn("dealdata_gps_wildfi_events_total 1", response.content.decode())
 
 
 @pytest.mark.django_db
@@ -341,8 +351,8 @@ def test_health_ready_reports_database_available() -> None:
     """Readiness checks database access."""
     response = Client().get("/health/ready/")
 
-    assert response.status_code == 200
-    assert response.json()["database"] == "available"
+    CHECK.assertEqual(response.status_code, 200)
+    CHECK.assertEqual(response.json()["database"], "available")
 
 
 @pytest.mark.parametrize(
@@ -353,8 +363,8 @@ def test_observability_endpoints_reject_unsafe_methods(path: str) -> None:
     """Read-only observability endpoints reject unsafe HTTP methods."""
     response = Client().post(path)
 
-    assert response.status_code == 405
-    assert response.headers["Allow"] == "GET, HEAD"
+    CHECK.assertEqual(response.status_code, 405)
+    CHECK.assertEqual(response.headers["Allow"], "GET, HEAD")
 
 
 @pytest.mark.django_db
@@ -374,7 +384,10 @@ def test_processed_gps_data_populates_geojson() -> None:
         processed_gps_data_observed_object_insert_timestamp=timezone.now(),
     )
 
-    assert processed.processed_gps_data_observed_object_geom == {
-        "type": "Point",
-        "coordinates": [5.5667, 50.6333],
-    }
+    CHECK.assertEqual(
+        processed.processed_gps_data_observed_object_geom,
+        {
+            "type": "Point",
+            "coordinates": [5.5667, 50.6333],
+        },
+    )

@@ -2,7 +2,6 @@
 
 from asgiref.sync import sync_to_async
 from auth.views import AuthView
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import aauthenticate, alogin
 from django.contrib.auth.models import User
@@ -12,6 +11,18 @@ from django.utils.http import url_has_allowed_host_and_scheme
 MISSING_CREDENTIALS_MESSAGE = "Please enter your username and password."
 INVALID_EMAIL_MESSAGE = "Please enter a valid email."
 INVALID_USERNAME_MESSAGE = "Please enter a valid username."
+
+
+def get_safe_next_url(request) -> str:
+    """Return a same-host post-login redirect target or an empty string."""
+    next_url = request.POST.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    return ""
 
 
 class LoginView(AuthView):
@@ -81,15 +92,8 @@ class LoginView(AuthView):
         if authenticated_user is not None:
             await alogin(request, authenticated_user)
 
-            next_url = request.POST.get("next", "")
-            if next_url and url_has_allowed_host_and_scheme(
-                url=next_url,
-                allowed_hosts={
-                    request.get_host(),
-                    *getattr(settings, "ALLOWED_HOSTS", []),
-                },
-                require_https=not settings.DEBUG,
-            ):
+            next_url = get_safe_next_url(request)
+            if next_url:
                 return redirect(next_url)
 
             return redirect("index")
