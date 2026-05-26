@@ -11,6 +11,7 @@ from unittest.mock import patch
 import pytest
 from dealdata_common.views import INVALID_LIST_QUERY_PARAMETERS_DETAIL
 from django.core.management import call_command
+from django.db import DatabaseError
 from django.test import Client
 from rest_framework.test import APIClient
 from sensor_data.models import Sensor, SensorData, WildFiDecodedSensorEvent
@@ -372,6 +373,21 @@ def test_health_ready_reports_database_available() -> None:
 
     CHECK.assertEqual(response.status_code, 200)
     CHECK.assertEqual(response.json()["database"], "available")
+
+
+def test_health_ready_reports_generic_database_failure() -> None:
+    """Readiness failures do not expose database exception details."""
+    with patch("sensor_data.views.connections") as mocked_connections:
+        mocked_connections.__getitem__.side_effect = DatabaseError(
+            "database password leaked",
+        )
+        response = Client().get("/health/ready/")
+
+    body = response.json()
+    CHECK.assertEqual(response.status_code, 503)
+    CHECK.assertEqual(body["database"], "unavailable")
+    CHECK.assertEqual(body["detail"], "Database connection check failed.")
+    CHECK.assertNotIn("password", str(body))
 
 
 @pytest.mark.parametrize(

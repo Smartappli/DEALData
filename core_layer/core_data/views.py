@@ -2,7 +2,7 @@
 
 import logging
 
-from django.db import connections
+from django.db import DatabaseError, connections
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_safe
 
@@ -26,8 +26,8 @@ def health_ready(request):
         with connections["default"].cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
-    except Exception:
-        logger.exception("Core database readiness check failed.")
+    except DatabaseError:
+        logger.warning("Core database readiness check failed.")
         return JsonResponse(
             {
                 "status": "error",

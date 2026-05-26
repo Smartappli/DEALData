@@ -1,6 +1,7 @@
 """Tests for the core_data application."""
 
 from unittest import TestCase
+from unittest.mock import patch
 
 import pytest
 from core_data.models import (
@@ -14,6 +15,7 @@ from core_data.models import (
 )
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.db import DatabaseError
 from django.test import Client
 
 CHECK = TestCase()
@@ -139,6 +141,21 @@ def test_health_ready(db) -> None:
 
     CHECK.assertEqual(response.status_code, 200)
     CHECK.assertEqual(response.json()["database"], "available")
+
+
+def test_health_ready_reports_generic_database_failure() -> None:
+    """Readiness failures do not expose database exception details."""
+    with patch("core_data.views.connections") as mocked_connections:
+        mocked_connections.__getitem__.side_effect = DatabaseError(
+            "database password leaked",
+        )
+        response = Client().get("/health/ready/")
+
+    body = response.json()
+    CHECK.assertEqual(response.status_code, 503)
+    CHECK.assertEqual(body["database"], "unavailable")
+    CHECK.assertEqual(body["detail"], "Database connection check failed.")
+    CHECK.assertNotIn("password", str(body))
 
 
 @pytest.mark.parametrize(

@@ -10,7 +10,7 @@ from dealdata_common.views import (
     ingestion_token_error,
     parse_list_params,
 )
-from django.db import connections
+from django.db import DatabaseError, connections
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_safe
 from rest_framework import status
@@ -39,8 +39,8 @@ def health_ready(request):
         with connections["default"].cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
-    except Exception:
-        logger.exception("GPS database readiness check failed.")
+    except DatabaseError:
+        logger.warning("GPS database readiness check failed.")
         return JsonResponse(
             {
                 "status": "error",
