@@ -111,6 +111,7 @@ class WildFiGPSIngestView(APIView):
 
     def post(self, request) -> Response:
         """Persist one decoded DEALIoT `raw.gps` event idempotently."""
+        _ = self.__class__
         token_error = ingestion_token_error(request)
         if token_error:
             return token_error
@@ -133,6 +134,7 @@ class WildFiGPSListView(APIView):
 
     def get(self, request) -> Response:
         """Return GPS fixes filtered by device, source, topic and time window."""
+        _ = self.__class__
         try:
             limit, offset, started_at, ended_at = parse_list_params(
                 request.query_params,
@@ -171,6 +173,7 @@ class WildFiGPSBatchIngestView(APIView):
 
     def post(self, request) -> Response:
         """Persist decoded DEALIoT `raw.gps` events idempotently."""
+        _ = self.__class__
         token_error = ingestion_token_error(request)
         if token_error:
             return token_error

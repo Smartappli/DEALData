@@ -1,7 +1,5 @@
 """Views for forgot-password workflows."""
 
-# pylint: disable=invalid-overridden-method
-
 from datetime import timedelta
 
 from django.conf import settings

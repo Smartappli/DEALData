@@ -156,9 +156,12 @@ def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
     """The Kafka worker persists one DEALIoT raw.sensor message."""
 
     class FakeKafkaConsumer:
+        """Minimal kafka-python consumer test double."""
+
         instances = []
 
         def __init__(self, *args, **kwargs):
+            """Record initialization parameters and default state."""
             self.args = args
             self.kwargs = kwargs
             self.polls = 0
@@ -167,6 +170,7 @@ def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
             self.instances.append(self)
 
         def poll(self, timeout_ms, max_records):
+            """Return one batch, then no further records."""
             del timeout_ms, max_records
             if self.polls:
                 return {}
@@ -187,9 +191,11 @@ def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
             return {"raw.sensor-0": [message]}
 
         def commit(self):
+            """Mark the fake consumer as committed."""
             self.committed = True
 
         def close(self):
+            """Mark the fake consumer as closed."""
             self.closed = True
 
     fake_kafka = types.SimpleNamespace(KafkaConsumer=FakeKafkaConsumer)

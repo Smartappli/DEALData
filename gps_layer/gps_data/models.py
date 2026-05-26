@@ -245,10 +245,10 @@ class WildFiGPSFix(WildFiEventBase):
 
     @classmethod
     def from_dealiot_event(
-        cls,
-        event: dict[str, Any],
-        *,
-        topic: str = "raw.gps",
+            cls,
+            event: dict[str, Any],
+            *,
+            topic: str = "raw.gps",
     ) -> "WildFiGPSFix":
         """Build a GPS fix from the decoded DEALIoT `raw.gps` contract."""
         payload = _payload_dict(event.get("payload"))

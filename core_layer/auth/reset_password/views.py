@@ -1,7 +1,5 @@
 """Views for password reset workflows."""
 
-# pylint: disable=invalid-overridden-method,unused-argument
-
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.shortcuts import redirect, render
@@ -66,17 +64,11 @@ class ResetPasswordView(AuthView):
 
         if not (new_password and confirm_password):
             messages.error(request, "Please fill all fields.")
-            return render(
-                request,
-                self.template_name,
-            )
+            return render(request, self.template_name)
 
         if new_password != confirm_password:
             messages.error(request, "Passwords do not match.")
-            return render(
-                request,
-                self.template_name,
-            )
+            return render(request, self.template_name)
 
         user = profile.user
         user.set_password(new_password)

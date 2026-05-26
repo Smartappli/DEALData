@@ -108,6 +108,7 @@ class WildFiSensorIngestView(APIView):
 
     def post(self, request) -> Response:
         """Persist one decoded DEALIoT `raw.sensor` event idempotently."""
+        _ = self.__class__
         token_error = ingestion_token_error(request)
         if token_error:
             return token_error
@@ -130,6 +131,7 @@ class WildFiSensorListView(APIView):
 
     def get(self, request) -> Response:
         """Return sensor events filtered by device, type, source, topic and time."""
+        _ = self.__class__
         try:
             limit, offset, started_at, ended_at = parse_list_params(
                 request.query_params,
@@ -174,6 +176,7 @@ class WildFiSensorBatchIngestView(APIView):
 
     def post(self, request) -> Response:
         """Persist decoded DEALIoT `raw.sensor` events idempotently."""
+        _ = self.__class__
         token_error = ingestion_token_error(request)
         if token_error:
             return token_error

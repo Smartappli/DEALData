@@ -48,7 +48,7 @@ def serialize_sensor_ingest_event(
 
 
 def ingest_dealiot_sensor_event(
-    payload: dict[str, object],
+        payload: dict[str, object],
 ) -> tuple[dict[str, object], int]:
     """Persist one decoded DEALIoT `raw.sensor` event idempotently."""
     serializer = WildFiSensorIngestSerializer(data=payload)

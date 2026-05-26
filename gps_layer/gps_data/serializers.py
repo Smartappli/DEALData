@@ -33,6 +33,7 @@ class WildFiGPSIngestSerializer(WildFiEventIngestSerializer):
 
     def validate(self, attrs):
         """Require GPS coordinates either at top level or in payload."""
+        _ = self.fields
         payload = attrs.get("payload") or {}
         has_latitude = any(
             key in attrs or key in payload for key in ("latitude", "lat")

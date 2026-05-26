@@ -24,6 +24,25 @@ from dealdata_common.models import (
     uuid7_value,
 )
 
+IMU_PAYLOAD_KEYS = {
+    "accx",
+    "accy",
+    "accz",
+    "gyrox",
+    "gyroy",
+    "gyroz",
+    "magx",
+    "magy",
+    "magz",
+}
+ENVIRONMENT_PAYLOAD_KEYS = {
+    "batteryvoltage",
+    "humidity",
+    "pressure",
+    "temperature",
+    "temperatureindegcel",
+}
+
 
 def _sensor_type_from_mqtt_topic(mqtt_topic: Any) -> str:
     """Infer a stable sensor type from common DEALIoT/WildFi MQTT topics."""
@@ -57,25 +76,9 @@ def _sensor_type_from_payload(payload: dict[str, Any]) -> str:
     keys = {str(key) for key in payload}
     lowered = {key.lower() for key in keys}
 
-    if lowered & {
-        "accx",
-        "accy",
-        "accz",
-        "gyrox",
-        "gyroy",
-        "gyroz",
-        "magx",
-        "magy",
-        "magz",
-    }:
+    if lowered & IMU_PAYLOAD_KEYS:
         return "imu"
-    if lowered & {
-        "batteryvoltage",
-        "humidity",
-        "pressure",
-        "temperature",
-        "temperatureindegcel",
-    }:
+    if lowered & ENVIRONMENT_PAYLOAD_KEYS:
         return "environment"
     if lowered & {"proximity", "prox", "distance", "distance_mm"}:
         return "proximity"
@@ -267,10 +270,10 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
 
     @classmethod
     def from_dealiot_event(
-        cls,
-        event: dict[str, Any],
-        *,
-        topic: str = "raw.sensor",
+            cls,
+            event: dict[str, Any],
+            *,
+            topic: str = "raw.sensor",
     ) -> "WildFiDecodedSensorEvent":
         """Build a sensor event from the decoded DEALIoT `raw.sensor` contract."""
         payload = _payload_dict(event.get("payload"))
