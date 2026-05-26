@@ -2,7 +2,9 @@
 
 from unittest import TestCase
 
+from auth.redirects import get_safe_next_url
 from auth.tokens import TOKEN_DIGEST_LENGTH, generate_url_token, hash_url_token
+from django.test import RequestFactory
 
 CHECK = TestCase()
 
@@ -26,3 +28,20 @@ def test_hash_url_token_is_stable_and_does_not_store_plaintext() -> None:
     CHECK.assertEqual(first_digest, second_digest)
     CHECK.assertNotEqual(first_digest, token)
     CHECK.assertEqual(len(first_digest), TOKEN_DIGEST_LENGTH)
+
+
+def test_get_safe_next_url_accepts_relative_paths() -> None:
+    request = RequestFactory().post("/login/", {"next": "/projects/"})
+
+    CHECK.assertEqual(get_safe_next_url(request), "/projects/")
+
+
+def test_get_safe_next_url_rejects_external_hosts(settings) -> None:
+    settings.ALLOWED_HOSTS = ["*"]
+    request = RequestFactory().post(
+        "/login/",
+        {"next": "https://example.invalid/projects/"},
+        HTTP_HOST="testserver",
+    )
+
+    CHECK.assertEqual(get_safe_next_url(request), "")

@@ -1,28 +1,16 @@
 """Views for authentication login workflows."""
 
 from asgiref.sync import sync_to_async
+from auth.redirects import get_safe_next_url
 from auth.views import AuthView
 from django.contrib import messages
 from django.contrib.auth import aauthenticate, alogin
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
-from django.utils.http import url_has_allowed_host_and_scheme
 
 MISSING_CREDENTIALS_MESSAGE = "Please enter your username and password."
 INVALID_EMAIL_MESSAGE = "Please enter a valid email."
 INVALID_USERNAME_MESSAGE = "Please enter a valid username."
-
-
-def get_safe_next_url(request) -> str:
-    """Return a same-host post-login redirect target or an empty string."""
-    next_url = request.POST.get("next", "")
-    if next_url and url_has_allowed_host_and_scheme(
-        url=next_url,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
-    ):
-        return next_url
-    return ""
 
 
 class LoginView(AuthView):
