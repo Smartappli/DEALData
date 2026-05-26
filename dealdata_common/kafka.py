@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib import import_module
 import json
 import os
 from typing import Any, Callable
@@ -45,12 +46,12 @@ def close_stale_connections() -> None:
 def load_kafka_consumer():
     """Import and return kafka-python's consumer class."""
     try:
-        from kafka import KafkaConsumer  # pylint: disable=import-outside-toplevel
+        kafka_module = import_module("kafka")
     except ImportError as exc:
         raise CommandError(
             "kafka-python is required to consume DEALIoT Kafka topics.",
         ) from exc
-    return KafkaConsumer
+    return kafka_module.KafkaConsumer
 
 
 def iter_messages(records):

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib import import_module
 import os
 from pathlib import Path
 from typing import Any, MutableMapping
@@ -119,15 +120,13 @@ REST_FRAMEWORK = {
 }
 
 
-def configure_service_settings(
-    namespace: MutableMapping[str, Any],
-    *,
-    base_dir: Path,
-    project_module: str,
-    app_config: str,
-    database_name: str,
-    include_wsgi: bool = True,
-) -> None:
+def configure_service_settings(namespace: MutableMapping[str, Any],
+                               *,
+                               base_dir: Path,
+                               project_module: str,
+                               app_config: str,
+                               database_name: str,
+                               include_wsgi: bool = True) -> None:
     """Populate the standard settings shared by all DEALData services."""
     debug = env_bool("DJANGO_DEBUG", default=True)
     namespace.update(
@@ -169,7 +168,7 @@ def configure_service_settings(
     sentry_dsn = os.environ.get("SENTRY_DSN", "")
     namespace["SENTRY_DSN"] = sentry_dsn
     if sentry_dsn:
-        import sentry_sdk  # pylint: disable=import-outside-toplevel,import-error
+        sentry_sdk = import_module("sentry_sdk")
 
         sentry_sdk.init(
             dsn=sentry_dsn,
