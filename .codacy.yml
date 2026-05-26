@@ -7,3 +7,6 @@ engines:
     exclude_paths:
       - "uv.lock"
       - "**/requirements*.txt"
+      - "core_layer/requirements.txt"
+      - "gps_layer/requirements.txt"
+      - "sensor_layer/requirements.txt"

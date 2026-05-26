@@ -1,13 +1,13 @@
 """Views for password reset workflows."""
 
-from asgiref.sync import sync_to_async
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.shortcuts import redirect, render
+from django.utils import timezone
+
 from auth.models import Profile
 from auth.tokens import hash_url_token
 from auth.views import AuthView
-from django.contrib import messages
-from django.contrib.auth import aauthenticate, alogin
-from django.shortcuts import redirect, render
-from django.utils import timezone
 
 
 class ResetPasswordView(AuthView):
@@ -31,7 +31,7 @@ class ResetPasswordView(AuthView):
 
         return super().get(request, *args, **kwargs)
 
-    async def post(self, request, token):
+    def post(self, request, token):
         """
         Reset the user's password if the provided token is valid.
 
@@ -43,14 +43,11 @@ class ResetPasswordView(AuthView):
             An HTTP redirect response or the rendered reset password page.
 
         """
-        profile = await Profile.objects.filter(
+        profile = Profile.objects.filter(
             forget_password_token=hash_url_token(token),
-        ).afirst()
+        ).first()
         if not profile:
-            await sync_to_async(messages.error)(
-                request,
-                "Invalid or expired token.",
-            )
+            messages.error(request, "Invalid or expired token.")
             return redirect("forgot-password")
 
         if (
@@ -59,55 +56,43 @@ class ResetPasswordView(AuthView):
         ):
             profile.forget_password_token = None
             profile.forget_password_token_expires_at = None
-            await profile.asave()
-            await sync_to_async(messages.error)(
-                request,
-                "Invalid or expired token.",
-            )
+            profile.save()
+            messages.error(request, "Invalid or expired token.")
             return redirect("forgot-password")
 
         new_password = request.POST.get("password")
         confirm_password = request.POST.get("confirm-password")
 
         if not (new_password and confirm_password):
-            await sync_to_async(messages.error)(
-                request,
-                "Please fill all fields.",
-            )
-            return await sync_to_async(render)(
+            messages.error(request, "Please fill all fields.")
+            return render(
                 request,
                 self.template_name,
             )
 
         if new_password != confirm_password:
-            await sync_to_async(messages.error)(
-                request,
-                "Passwords do not match.",
-            )
-            return await sync_to_async(render)(
+            messages.error(request, "Passwords do not match.")
+            return render(
                 request,
                 self.template_name,
             )
 
         user = profile.user
-        await sync_to_async(user.set_password)(new_password)
-        await user.asave()
+        user.set_password(new_password)
+        user.save()
 
         profile.forget_password_token = None
         profile.forget_password_token_expires_at = None
-        await profile.asave()
+        profile.save()
 
-        authenticated_user = await aauthenticate(
+        authenticated_user = authenticate(
             request,
             username=user.username,
             password=new_password,
         )
         if authenticated_user:
-            await alogin(request, authenticated_user)
+            login(request, authenticated_user)
             return redirect("index")
 
-        await sync_to_async(messages.success)(
-            request,
-            "Password reset successful. Please log in.",
-        )
+        messages.success(request, "Password reset successful. Please log in.")
         return redirect("login")

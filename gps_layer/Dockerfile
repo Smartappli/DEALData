@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY ./gps_layer/requirements.lock ./
 RUN pip install --prefix=/install --no-cache-dir --require-hashes --only-binary :all: -r requirements.lock \
  && find /install -name "*.pyc" -delete \
- && find /install -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+ && find /install -depth -type d -name "__pycache__" -exec rm -rf {} +
 
 # Stage 2: Lightweight runtime image
 FROM python:3.14-slim-trixie AS runtime
@@ -59,8 +59,8 @@ COPY ./gps_layer/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh \
     && chown appuser:appuser /entrypoint.sh \
     && find /app -name "*.pyc" -delete \
-    && find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
-    && find /app -name "*.git*" -exec rm -rf {} + 2>/dev/null || true
+    && find /app -depth -type d -name "__pycache__" -exec rm -rf {} + \
+    && find /app -depth -name "*.git*" -exec rm -rf {} +
 
 USER appuser
 

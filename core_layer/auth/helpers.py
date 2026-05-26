@@ -1,14 +1,15 @@
 """Helper functions for authentication emails and URL generation."""
 
 import logging
+from smtplib import SMTPException
 from urllib.parse import urljoin
 
-from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.urls import reverse
+from asgiref.sync import sync_to_async
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 async def send_email(subject, email, message):
@@ -33,18 +34,18 @@ async def send_email(subject, email, message):
         None,
     )
     if not email_from:
-        logger.warning("Email sender is not configured; skipping send.")
+        LOGGER.warning("Email sender is not configured; skipping send.")
         return
     if not email:
-        logger.warning("No recipient email provided; skipping send.")
+        LOGGER.warning("No recipient email provided; skipping send.")
         return
 
     recipient_list = [email]
     email_message = EmailMessage(subject, message, email_from, recipient_list)
     try:
         await sync_to_async(email_message.send)()
-    except Exception:
-        logger.exception("Failed to send email.")
+    except (OSError, SMTPException):
+        LOGGER.exception("Failed to send email.")
 
 
 def get_absolute_url(path):

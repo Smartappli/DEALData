@@ -1,13 +1,14 @@
 """Views for email verification workflows."""
 
-from asgiref.sync import sync_to_async
+from django.conf import settings
+from django.contrib import messages
+from django.shortcuts import redirect
+from asgiref.sync import async_to_sync
+
 from auth.helpers import send_verification_email
 from auth.models import Profile
 from auth.tokens import generate_url_token, hash_url_token
 from auth.views import AuthView
-from django.conf import settings
-from django.contrib import messages
-from django.shortcuts import redirect
 
 EMAIL_NOT_CONFIGURED_MESSAGE = (
     "Email settings are not configured. Unable to send verification email."
@@ -35,37 +36,33 @@ class VerifyEmailTokenView(AuthView):
       verify email page.
     """
 
-    async def get(self, request, token):
+    def get(self, request, *args, **kwargs):
         """
         Handle token verification.
 
         Args:
             request: Django HttpRequest.
-            token: Verification token extracted from the URL.
+            *args: Positional URL arguments.
+            **kwargs: Keyword URL arguments.
 
         Returns:
             An HTTP redirect response.
 
         """
-        profile = await Profile.objects.filter(
+        token = kwargs.get("token") or (args[0] if args else "")
+        profile = Profile.objects.filter(
             email_token=hash_url_token(token),
-        ).afirst()
+        ).first()
         if not profile:
-            await sync_to_async(messages.error)(
-                request,
-                INVALID_VERIFICATION_MESSAGE,
-            )
+            messages.error(request, INVALID_VERIFICATION_MESSAGE)
             return redirect("verify-email-page")
 
         profile.is_verified = True
         profile.email_token = None
-        await profile.asave()
+        profile.save()
 
         if not request.user.is_authenticated:
-            await sync_to_async(messages.success)(
-                request,
-                EMAIL_VERIFIED_MESSAGE,
-            )
+            messages.success(request, EMAIL_VERIFIED_MESSAGE)
 
         return redirect("login")
 
@@ -78,19 +75,6 @@ class VerifyEmailView(AuthView):
     their email address and where they can trigger a resend of the
     verification email.
     """
-
-    async def get(self, request):
-        """
-        Render the verify email page.
-
-        Args:
-            request: Django HttpRequest.
-
-        Returns:
-            The response returned by the parent AuthView's GET handler.
-
-        """
-        return await sync_to_async(super().get)(request)
 
 
 class SendVerificationView(AuthView):
@@ -105,49 +89,46 @@ class SendVerificationView(AuthView):
     - Redirects back to the verify email page.
     """
 
-    async def get(self, request):
+    def get(self, request, *args, **kwargs):
         """
         Send a verification email to the user.
 
         Args:
             request: Django HttpRequest.
+            *args: Positional URL arguments.
+            **kwargs: Keyword URL arguments.
 
         Returns:
             An HTTP redirect response to the verify email page.
 
         """
-        email, success_message, error_message = await self.get_email_and_message(
+        del args, kwargs
+        email, success_message, error_message = self.get_email_and_message(
             request,
         )
 
         if error_message:
-            await sync_to_async(messages.error)(request, error_message)
+            messages.error(request, error_message)
             return redirect("verify-email-page")
 
         if not email:
-            await sync_to_async(messages.error)(
-                request,
-                EMAIL_NOT_FOUND_MESSAGE,
-            )
+            messages.error(request, EMAIL_NOT_FOUND_MESSAGE)
             return redirect("verify-email-page")
 
         verification_token = generate_url_token()
-        user_profile = await Profile.objects.filter(email=email).afirst()
+        user_profile = Profile.objects.filter(email=email).first()
         if not user_profile:
-            await sync_to_async(messages.error)(
-                request,
-                PROFILE_NOT_FOUND_MESSAGE,
-            )
+            messages.error(request, PROFILE_NOT_FOUND_MESSAGE)
             return redirect("verify-email-page")
 
         user_profile.email_token = hash_url_token(verification_token)
-        await user_profile.asave()
-        await send_verification_email(email, verification_token)
-        await sync_to_async(messages.success)(request, success_message)
+        user_profile.save()
+        async_to_sync(send_verification_email)(email, verification_token)
+        messages.success(request, success_message)
 
         return redirect("verify-email-page")
 
-    async def get_email_and_message(self, request):
+    def get_email_and_message(self, request):
         """
         Resolve the recipient email and the message to display.
 
@@ -170,7 +151,7 @@ class SendVerificationView(AuthView):
             return None, None, EMAIL_NOT_CONFIGURED_MESSAGE
 
         if request.user.is_authenticated:
-            profile = await Profile.objects.filter(user=request.user).afirst()
+            profile = Profile.objects.filter(user=request.user).first()
             email = profile.email if profile else None
             return email, VERIFICATION_EMAIL_SENT_MESSAGE, None
 

@@ -34,6 +34,9 @@ python_files = ["tests.py", "test_*.py", "*_tests.py"]
 extend-exclude = [
     "uv.lock",
     "**/requirements*.txt",
+    "core_layer/requirements.txt",
+    "gps_layer/requirements.txt",
+    "sensor_layer/requirements.txt",
 ]
 force-exclude = true
 

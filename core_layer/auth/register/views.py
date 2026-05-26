@@ -1,14 +1,16 @@
 """Views for user registration workflows."""
 
-from asgiref.sync import sync_to_async
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.shortcuts import redirect
+from asgiref.sync import async_to_sync
+
 from auth.helpers import send_verification_email
 from auth.models import Profile
 from auth.tokens import generate_url_token, hash_url_token
 from auth.views import AuthView
-from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth.models import Group, User
-from django.shortcuts import redirect
 
 EMAIL_NOT_CONFIGURED_MESSAGE = (
     "Email settings are not configured. Unable to send verification email."
@@ -24,12 +26,14 @@ DEFAULT_GROUP_NAME = "client"
 class RegisterView(AuthView):
     """Handle user registration and email verification setup."""
 
-    async def get(self, request):
+    def get(self, request, *args, **kwargs):
         """
         Display the registration page.
 
         Args:
             request: Django HTTP request.
+            *args: Positional URL arguments.
+            **kwargs: Keyword URL arguments.
 
         Returns:
             An HTTP redirect response or the rendered registration page.
@@ -38,9 +42,9 @@ class RegisterView(AuthView):
         if request.user.is_authenticated:
             return redirect("index")
 
-        return await sync_to_async(super().get)(request)
+        return super().get(request, *args, **kwargs)
 
-    async def post(self, request):
+    def post(self, request):
         """
         Create a new user account and send a verification email.
 
@@ -56,65 +60,48 @@ class RegisterView(AuthView):
         password = request.POST.get("password")
 
         if not (username and email and password):
-            await sync_to_async(messages.error)(
-                request,
-                MISSING_FIELDS_MESSAGE,
-            )
+            messages.error(request, MISSING_FIELDS_MESSAGE)
             return redirect("register")
 
-        if await User.objects.filter(username=username, email=email).aexists():
-            await sync_to_async(messages.error)(
-                request,
-                USER_ALREADY_EXISTS_MESSAGE,
-            )
+        user_model = get_user_model()
+        if user_model.objects.filter(username=username, email=email).exists():
+            messages.error(request, USER_ALREADY_EXISTS_MESSAGE)
             return redirect("register")
 
-        if await User.objects.filter(email=email).aexists():
-            await sync_to_async(messages.error)(
-                request,
-                EMAIL_ALREADY_EXISTS_MESSAGE,
-            )
+        if user_model.objects.filter(email=email).exists():
+            messages.error(request, EMAIL_ALREADY_EXISTS_MESSAGE)
             return redirect("register")
 
-        if await User.objects.filter(username=username).aexists():
-            await sync_to_async(messages.error)(
-                request,
-                USERNAME_ALREADY_EXISTS_MESSAGE,
-            )
+        if user_model.objects.filter(username=username).exists():
+            messages.error(request, USERNAME_ALREADY_EXISTS_MESSAGE)
             return redirect("register")
 
-        created_user = await User.objects.acreate_user(
+        created_user = user_model.objects.create_user(
             username=username,
             email=email,
             password=password,
         )
 
-        user_group, _created_group = await Group.objects.aget_or_create(
+        user_group, _created_group = Group.objects.get_or_create(
             name=DEFAULT_GROUP_NAME,
         )
-        await sync_to_async(created_user.groups.add)(user_group)
+        created_user.groups.add(user_group)
 
         verification_token = generate_url_token()
 
-        user_profile, _created_profile = await Profile.objects.aget_or_create(
+        user_profile, _created_profile = Profile.objects.get_or_create(
             user=created_user,
         )
         user_profile.email_token = hash_url_token(verification_token)
         user_profile.email = email
-        await user_profile.asave()
+        user_profile.save()
 
-        await send_verification_email(email, verification_token)
+        async_to_sync(send_verification_email)(email, verification_token)
 
         if settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD:
-            await sync_to_async(messages.success)(
-                request,
-                VERIFICATION_EMAIL_SENT_MESSAGE,
-            )
+            messages.success(request, VERIFICATION_EMAIL_SENT_MESSAGE)
         else:
-            await sync_to_async(messages.error)(
-                request,
-                EMAIL_NOT_CONFIGURED_MESSAGE,
-            )
+            messages.error(request, EMAIL_NOT_CONFIGURED_MESSAGE)
 
         request.session["email"] = email
         return redirect("verify-email-page")

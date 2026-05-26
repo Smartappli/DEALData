@@ -8,4 +8,9 @@ init-hook=
 [MESSAGES CONTROL]
 disable=
     abstract-method,
-    duplicate-code
+    arguments-differ,
+    duplicate-code,
+    no-member,
+    no-name-in-module,
+    too-few-public-methods,
+    unsubscriptable-object
