@@ -1,11 +1,14 @@
 """Data models for the sensor layer."""
 
-# pylint: disable=arguments-differ,no-member,no-name-in-module,unsubscriptable-object
+# pylint: disable=no-member,no-name-in-module
 
-from typing import Any, ClassVar
+from typing import Any
 
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Q
+from django.db.models.constraints import BaseConstraint, CheckConstraint, UniqueConstraint
+from django.db.models.fields.json import JSONField
+from django.db.models.indexes import Index
 
 from dealdata_common.models import (
     OBSERVED_OBJECT_ID_HELP_TEXT,
@@ -133,8 +136,8 @@ class Sensor(models.Model):
     class Meta:
         """Model metadata for sensors."""
 
-        constraints: ClassVar[list[models.BaseConstraint]] = [
-            models.UniqueConstraint(
+        constraints = [
+            UniqueConstraint(
                 fields=["sensor_code"],
                 name="uq_sensor_code",
             ),
@@ -177,9 +180,9 @@ class SensorObservedObject(models.Model):
     class Meta:
         """Model metadata for sensor-observed object links."""
 
-        constraints: ClassVar[list[models.BaseConstraint]] = [
-            models.CheckConstraint(
-                condition=models.Q(
+        constraints = [
+            CheckConstraint(
+                condition=Q(
                     sensor_observed_object_end_time__gte=F(
                         "sensor_observed_object_start_time",
                     ),
@@ -210,7 +213,7 @@ class SensorData(models.Model):
     sensor_data_utc_time = models.TimeField()
     sensor_data_lmt_date = models.DateField()
     sensor_data_lmt_time = models.TimeField()
-    sensor_data_value = models.JSONField(default=dict)
+    sensor_data_value = JSONField(default=dict)
     sensor_data_create_at = models.DateTimeField(
         auto_now_add=True,
         editable=False,
@@ -243,20 +246,20 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
     class Meta:
         """Model metadata for decoded WildFi sensor events."""
 
-        indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["wildfi_device_id", "acquisition_time"]),
-            models.Index(fields=["dealiot_topic", "acquisition_time"]),
-            models.Index(fields=["sensor_type", "acquisition_time"]),
+        indexes = [
+            Index(fields=["wildfi_device_id", "acquisition_time"]),
+            Index(fields=["dealiot_topic", "acquisition_time"]),
+            Index(fields=["sensor_type", "acquisition_time"]),
         ]
-        constraints: ClassVar[list[models.BaseConstraint]] = [
-            models.UniqueConstraint(
+        constraints = [
+            UniqueConstraint(
                 fields=["source", "event_id"],
-                condition=~models.Q(event_id=""),
+                condition=~Q(event_id=""),
                 name="uq_wildfi_sensor_source_event_id",
             ),
-            models.UniqueConstraint(
+            UniqueConstraint(
                 fields=["source", "payload_hash"],
-                condition=~models.Q(payload_hash=""),
+                condition=~Q(payload_hash=""),
                 name="uq_wildfi_sensor_source_payload_hash",
             ),
         ]
@@ -299,7 +302,7 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
             message_metadata=_event_metadata(event),
         )
 
-    def save(self, *args, **kwargs):
+    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
         """Ensure directly-created events still have an idempotency hash."""
         if not getattr(self, "payload_hash", ""):
             payload = event_identity_payload(
@@ -307,7 +310,12 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
                 sensor_type=self.sensor_type,
             )
             self.payload_hash = _stable_event_hash(payload)
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
     def __str__(self) -> str:
         """Return a readable device and timestamp pair."""
@@ -332,7 +340,7 @@ class SensorDataObservedObject(models.Model):
         help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
     sensor_data_observed_object_acquisition_time = models.DateTimeField()
-    sensor_data_observed_object_value = models.JSONField(
+    sensor_data_observed_object_value = JSONField(
         default=dict,
     )
     sensor_data_observed_object_create_at = models.DateTimeField(
