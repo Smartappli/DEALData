@@ -6,7 +6,7 @@ from typing import Any
 
 from django.db import models
 from django.db.models import F, Q
-from django.db.models.constraints import BaseConstraint, CheckConstraint, UniqueConstraint
+from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.fields.json import JSONField
 from django.db.models.indexes import Index
 
