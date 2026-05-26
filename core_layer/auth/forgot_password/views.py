@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.shortcuts import redirect
 from django.utils import timezone
 from asgiref.sync import async_to_sync
@@ -22,6 +23,17 @@ EMAIL_NOT_CONFIGURED_MESSAGE = (
     "Email settings are not configured. Unable to send verification email."
 )
 RESET_TOKEN_EXPIRATION_HOURS = 24
+
+
+def get_password_reset_profile(user) -> Profile:
+    """Return a user's profile, creating it if the signal did not."""
+    profile = Profile.objects.filter(user=user).first()
+    if profile:
+        return profile
+    try:
+        return Profile.objects.create(user=user, email=user.email)
+    except IntegrityError:
+        return Profile.objects.get(user=user)
 
 
 class ForgetPasswordView(AuthView):
@@ -69,9 +81,7 @@ class ForgetPasswordView(AuthView):
         )
 
         if user:
-            user_profile, _created_profile = Profile.objects.get_or_create(
-                user=user,
-            )
+            user_profile = get_password_reset_profile(user)
             user_profile.forget_password_token = hash_url_token(reset_token)
             user_profile.forget_password_token_expires_at = expiration_time
             user_profile.save()

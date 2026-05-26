@@ -7,6 +7,8 @@ For more information on this file, see
 https://docs.djangoproject.com/en/6.0/howto/deployment/asgi/
 """
 
+# pylint: disable=no-name-in-module
+
 import os
 
 from django.core.asgi import get_asgi_application

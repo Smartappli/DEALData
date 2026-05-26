@@ -17,6 +17,8 @@ Including another URLconf
 
 """
 
+# pylint: disable=no-name-in-module
+
 from django.contrib import admin
 from django.urls import path
 from core_data.views import health_live, health_ready, metrics

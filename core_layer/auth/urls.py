@@ -1,5 +1,7 @@
 """URL configuration for the authentication application."""
 
+# pylint: disable=no-name-in-module
+
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
