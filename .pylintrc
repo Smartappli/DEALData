@@ -1,0 +1,11 @@
+[MASTER]
+load-plugins=pylint_django
+django-settings-module=dealdata_common.pylint_settings
+init-hook=
+    import sys
+    from pathlib import Path
+    root = Path.cwd()
+    for rel_path in ("core_layer", "gps_layer", "sensor_layer"):
+        path = str(root / rel_path)
+        if path not in sys.path:
+            sys.path.insert(0, path)

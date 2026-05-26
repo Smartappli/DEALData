@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from django.db import models
+from django.db.models import F
+
 from dealdata_common.models import (
     OBSERVED_OBJECT_ID_HELP_TEXT,
     OBSERVED_OBJECT_ID_VERBOSE_NAME,
@@ -16,8 +19,6 @@ from dealdata_common.models import (
     stable_event_hash as _stable_event_hash,
     uuid7_value,
 )
-from django.db import models
-from django.db.models import F
 
 
 def _sensor_type_from_mqtt_topic(mqtt_topic: Any) -> str:

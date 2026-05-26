@@ -2,6 +2,13 @@
 
 import logging
 
+from django.db import DatabaseError, connections
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_safe
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from dealdata_common.views import (
     INVALID_LIST_QUERY_PARAMETERS_DETAIL,
     QueryParameterError,
@@ -10,12 +17,6 @@ from dealdata_common.views import (
     ingestion_token_error,
     parse_list_params,
 )
-from django.db import DatabaseError, connections
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.http import require_safe
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from .ingestion import ingest_dealiot_gps_event
 from .models import WildFiGPSFix

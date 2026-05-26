@@ -18,6 +18,7 @@ class QueryParameterError(ValueError):
 
 
 def ingestion_token_error(request) -> Response | None:
+    """Return a forbidden response when the shared ingestion token is invalid."""
     token = getattr(settings, "DEALDATA_INGEST_TOKEN", "")
     if not token:
         return None
@@ -35,6 +36,7 @@ def parse_positive_int(
     default: int,
     maximum: int,
 ) -> int:
+    """Parse a non-negative integer query value and cap it at a maximum."""
     if value in (None, ""):
         return default
     try:
@@ -49,6 +51,7 @@ def parse_positive_int(
 
 
 def parse_datetime_filter(value: str | None, field_name: str):
+    """Parse an ISO datetime query value, defaulting naive values to UTC."""
     if not value:
         return None
     parsed = parse_datetime(value)
@@ -61,6 +64,7 @@ def parse_datetime_filter(value: str | None, field_name: str):
 
 
 def parse_list_params(query_params) -> tuple[int, int, object, object]:
+    """Parse common pagination and time-window query parameters."""
     limit = parse_positive_int(
         query_params.get("limit"),
         "limit",
@@ -79,6 +83,7 @@ def parse_list_params(query_params) -> tuple[int, int, object, object]:
 
 
 def apply_event_filters(queryset, query_params, started_at, ended_at):
+    """Apply common device, source, topic and acquisition-time filters."""
     device_id = query_params.get("device_id")
     if device_id:
         queryset = queryset.filter(wildfi_device_id=device_id)
@@ -101,6 +106,7 @@ def batch_ingest_response(
     serializer_class,
     ingest_event: Callable[[dict], tuple[dict, int]],
 ) -> Response:
+    """Validate and ingest a batch payload, reporting per-event outcomes."""
     if isinstance(data, list):
         data = {"events": data}
     if not isinstance(data, dict):

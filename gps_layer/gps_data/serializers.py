@@ -1,11 +1,11 @@
 """Serializers for GPS ingestion contracts."""
 
+from rest_framework import serializers
+
 from dealdata_common.serializers import (
     WildFiEventIngestSerializer,
     validate_payload_object,
 )
-
-from rest_framework import serializers
 
 
 class WildFiGPSIngestSerializer(WildFiEventIngestSerializer):

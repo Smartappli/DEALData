@@ -10,6 +10,7 @@ CHECK = TestCase()
 
 
 def test_generate_url_token_returns_distinct_url_safe_tokens() -> None:
+    """Generated URL tokens are unique and safe to place in URLs."""
     first_token = generate_url_token()
     second_token = generate_url_token()
 
@@ -20,6 +21,7 @@ def test_generate_url_token_returns_distinct_url_safe_tokens() -> None:
 
 
 def test_hash_url_token_is_stable_and_does_not_store_plaintext() -> None:
+    """Token hashing is deterministic and does not keep the plain token."""
     token = generate_url_token()
 
     first_digest = hash_url_token(token)
@@ -31,12 +33,14 @@ def test_hash_url_token_is_stable_and_does_not_store_plaintext() -> None:
 
 
 def test_get_safe_next_url_accepts_relative_paths() -> None:
+    """Relative post-login redirect targets are accepted."""
     request = RequestFactory().post("/login/", {"next": "/projects/"})
 
     CHECK.assertEqual(get_safe_next_url(request), "/projects/")
 
 
 def test_get_safe_next_url_rejects_external_hosts(settings) -> None:
+    """External post-login redirect targets are rejected."""
     settings.ALLOWED_HOSTS = ["*"]
     request = RequestFactory().post(
         "/login/",
