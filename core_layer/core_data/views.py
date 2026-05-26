@@ -1,10 +1,14 @@
 """Views for the core_data application."""
 
+import logging
+
 from django.db import connections
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_safe
 
 from .models import Experiment, ObservedObject, Project
+
+logger = logging.getLogger(__name__)
 
 
 @require_safe
@@ -22,13 +26,14 @@ def health_ready(request):
         with connections["default"].cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
-    except Exception as exc:
+    except Exception:
+        logger.exception("Core database readiness check failed.")
         return JsonResponse(
             {
                 "status": "error",
                 "service": "core",
                 "database": "unavailable",
-                "detail": str(exc),
+                "detail": "Database connection check failed.",
             },
             status=503,
         )

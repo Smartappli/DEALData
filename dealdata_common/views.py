@@ -11,6 +11,14 @@ from rest_framework import status
 from rest_framework.response import Response
 
 
+class QueryParameterError(ValueError):
+    """Validation error with a client-safe response detail."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__("Invalid query parameter.")
+        self.detail = detail
+
+
 def ingestion_token_error(request) -> Response | None:
     token = getattr(settings, "DEALDATA_INGEST_TOKEN", "")
     if not token:
@@ -23,12 +31,22 @@ def ingestion_token_error(request) -> Response | None:
     )
 
 
-def parse_positive_int(value: str | None, default: int, maximum: int) -> int:
+def parse_positive_int(
+    value: str | None,
+    field_name: str,
+    default: int,
+    maximum: int,
+) -> int:
     if value in (None, ""):
         return default
-    parsed = int(value)
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        message = f"Query parameter '{field_name}' must be a positive integer."
+        raise QueryParameterError(message) from exc
     if parsed < 0:
-        raise ValueError("Expected a positive integer.")
+        message = f"Query parameter '{field_name}' must be a positive integer."
+        raise QueryParameterError(message)
     return min(parsed, maximum)
 
 
@@ -38,16 +56,22 @@ def parse_datetime_filter(value: str | None, field_name: str):
     parsed = parse_datetime(value)
     if parsed is None:
         message = f"Query parameter '{field_name}' must be an ISO datetime."
-        raise ValueError(message)
+        raise QueryParameterError(message)
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
     return parsed
 
 
 def parse_list_params(query_params) -> tuple[int, int, object, object]:
-    limit = parse_positive_int(query_params.get("limit"), default=100, maximum=1000)
+    limit = parse_positive_int(
+        query_params.get("limit"),
+        "limit",
+        default=100,
+        maximum=1000,
+    )
     offset = parse_positive_int(
         query_params.get("offset"),
+        "offset",
         default=0,
         maximum=1_000_000,
     )

@@ -1,6 +1,9 @@
 """Views for the gps_data application."""
 
+import logging
+
 from dealdata_common.views import (
+    QueryParameterError,
     apply_event_filters,
     batch_ingest_response,
     ingestion_token_error,
@@ -16,6 +19,8 @@ from rest_framework.views import APIView
 from .ingestion import ingest_dealiot_gps_event
 from .models import WildFiGPSFix
 from .serializers import WildFiGPSBatchSerializer
+
+logger = logging.getLogger(__name__)
 
 
 @require_safe
@@ -33,13 +38,14 @@ def health_ready(request):
         with connections["default"].cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
-    except Exception as exc:
+    except Exception:
+        logger.exception("GPS database readiness check failed.")
         return JsonResponse(
             {
                 "status": "error",
                 "service": "gps",
                 "database": "unavailable",
-                "detail": str(exc),
+                "detail": "Database connection check failed.",
             },
             status=503,
         )
@@ -129,9 +135,9 @@ class WildFiGPSListView(APIView):
             limit, offset, started_at, ended_at = parse_list_params(
                 request.query_params,
             )
-        except ValueError as exc:
+        except QueryParameterError as exc:
             return Response(
-                {"detail": str(exc)},
+                {"detail": exc.detail},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
