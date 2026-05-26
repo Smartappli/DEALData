@@ -1,14 +1,16 @@
 """Data models for the research core layer."""
 
-# pylint: disable=arguments-differ,no-member,no-name-in-module
-# pylint: disable=too-few-public-methods,unsubscriptable-object
+# pylint: disable=no-member,no-name-in-module,too-few-public-methods
 
-from typing import ClassVar
 from uuid import UUID
 
 from django.conf import settings
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models.constraints import UniqueConstraint
+from django.db.models.enums import TextChoices
+from django.db.models.fields.json import JSONField
+from django.db.models.indexes import Index
 from uuid_utils import uuid7
 
 
@@ -17,7 +19,7 @@ def uuid7_value() -> UUID:
     return UUID(str(uuid7()))
 
 
-class ProjectRole(models.TextChoices):
+class ProjectRole(TextChoices):
     """Available roles for project members."""
 
     OWNER = "owner", "Owner"
@@ -97,8 +99,8 @@ class ProjectMembership(models.Model):
     class Meta:
         """Model metadata for project memberships."""
 
-        constraints: ClassVar[list[models.UniqueConstraint]] = [
-            models.UniqueConstraint(
+        constraints = [
+            UniqueConstraint(
                 fields=[
                     "project_membership_project",
                     "project_membership_user",
@@ -106,14 +108,14 @@ class ProjectMembership(models.Model):
                 name="uq_project_membership_project_user",
             ),
         ]
-        indexes: ClassVar[list[models.Index]] = [
-            models.Index(
+        indexes = [
+            Index(
                 fields=[
                     "project_membership_project",
                     "project_membership_user",
                 ],
             ),
-            models.Index(
+            Index(
                 fields=[
                     "project_membership_project",
                     "project_membership_role",
@@ -174,10 +176,15 @@ class ProjectMembership(models.Model):
                 message = "A project must have at least one active owner."
                 raise ValidationError(message)
 
-    def save(self, *args, **kwargs):
+    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
         """Validate the model before saving it."""
         self.full_clean()
-        return super().save(*args, **kwargs)
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
 
 class ObservedObject(models.Model):
@@ -194,7 +201,7 @@ class ObservedObject(models.Model):
         verbose_name="Observed Object Code",
         help_text="e.g.: cow 125, building n°2, vehicle 1-xxx xxx, etc.",
     )
-    observed_object_extra_data = models.JSONField(
+    observed_object_extra_data = JSONField(
         default=dict,
         blank=True,
         verbose_name="Observed Object Associated Extra Data",
@@ -257,8 +264,8 @@ class ExperimentObservedObject(models.Model):
     class Meta:
         """Model metadata for experiment observed-object links."""
 
-        constraints: ClassVar[list[models.UniqueConstraint]] = [
-            models.UniqueConstraint(
+        constraints = [
+            UniqueConstraint(
                 fields=[
                     "experiment_observed_object_experiment",
                     "experiment_observed_object_observed_object",
