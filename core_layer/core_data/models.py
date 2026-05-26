@@ -3,8 +3,6 @@
 # pylint: disable=arguments-differ,no-member,no-name-in-module
 # pylint: disable=too-few-public-methods,unsubscriptable-object
 
-from __future__ import annotations
-
 from typing import ClassVar
 from uuid import UUID
 

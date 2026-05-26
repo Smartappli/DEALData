@@ -2,8 +2,6 @@
 
 # pylint: disable=arguments-differ,no-member,no-name-in-module,unsubscriptable-object
 
-from __future__ import annotations
-
 from typing import Any, ClassVar
 
 from django.db import models
