@@ -5,9 +5,7 @@ from auth.views import AuthView
 from django.contrib import messages
 from django.contrib.auth import aauthenticate, alogin
 from django.contrib.auth.models import User
-from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
-from django.utils.http import url_has_allowed_host_and_scheme
 
 MISSING_CREDENTIALS_MESSAGE = "Please enter your username and password."
 INVALID_EMAIL_MESSAGE = "Please enter a valid email."
@@ -80,15 +78,6 @@ class LoginView(AuthView):
         )
         if authenticated_user is not None:
             await alogin(request, authenticated_user)
-
-            next_url = request.POST.get("next", "")
-            if next_url and url_has_allowed_host_and_scheme(
-                url=next_url,
-                allowed_hosts={request.get_host()},
-                require_https=request.is_secure(),
-            ):
-                return HttpResponseRedirect(next_url)
-
             return redirect("index")
 
         await sync_to_async(messages.error)(

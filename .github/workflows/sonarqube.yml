@@ -31,7 +31,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -103,7 +103,7 @@ jobs:
           coverage-reports: "coverage-core.xml,coverage-gps.xml,coverage-sensor.xml"
 
       - name: SonarQube scan
-        uses: SonarSource/sonarqube-scan-action@v8.1.0
+        uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
         with:
           args: >-
             -Dsonar.python.coverage.reportPaths=coverage-core.xml,coverage-gps.xml,coverage-sensor.xml

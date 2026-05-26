@@ -29,3 +29,12 @@ test = [
 
 [tool.pytest.ini_options]
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
+
+[tool.ruff]
+extend-exclude = ["uv.lock"]
+force-exclude = true
+
+[tool.ruff.lint.per-file-ignores]
+"core_layer/core/settings.py" = ["E402"]
+"gps_layer/gps/settings.py" = ["E402"]
+"sensor_layer/sensor/settings.py" = ["E402"]
