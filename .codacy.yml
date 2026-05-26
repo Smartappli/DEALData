@@ -1,0 +1,5 @@
+---
+engines:
+  ruff:
+    exclude_paths:
+      - "uv.lock"
