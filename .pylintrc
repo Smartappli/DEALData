@@ -3,7 +3,7 @@ load-plugins=pylint_django
 django-settings-module=dealdata_common.pylint_settings
 ignore-paths=.*[\\/]migrations[\\/].*
 init-hook=
-    import sys; from pathlib import Path; root = Path.cwd(); [sys.path.insert(0, path) for path in [str(root), *(str(root / rel_path) for rel_path in ("core_layer", "gps_layer", "sensor_layer"))] if path not in sys.path]
+    import os, sys; root = os.getcwd(); paths = [root, os.path.join(root, "core_layer"), os.path.join(root, "gps_layer"), os.path.join(root, "sensor_layer")]; [sys.path.insert(0, path) for path in paths if path not in sys.path]
 
 [MESSAGES CONTROL]
 disable=
