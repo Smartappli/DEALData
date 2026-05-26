@@ -10,6 +10,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections, connection
 from rest_framework import status
 
+KafkaIngestEvent = Callable[[dict[str, Any]], tuple[dict[str, Any], int]]
+
 
 def env(*names: str, default: str = "") -> str:
     """Return the first populated environment variable from the given names."""
@@ -67,7 +69,7 @@ class DealIotKafkaCommand(BaseCommand):
     default_topic = ""
     default_group_id = ""
     event_label = ""
-    ingest_event: Callable[[dict[str, Any]], tuple[dict[str, Any], int]]
+    ingest_event: KafkaIngestEvent
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
@@ -199,27 +201,22 @@ class DealIotKafkaCommand(BaseCommand):
         )
 
 
-def build_dealiot_kafka_command(
-        *,
-        service_key: str,
-        event_label: str,
-        model_path: str,
-        ingest_event: Callable[[dict[str, Any]], tuple[dict[str, Any], int]],
-):
+def build_dealiot_kafka_command(*,
+                                service_key: str,
+                                event_label: str,
+                                model_path: str,
+                                ingest_event: KafkaIngestEvent):
     """Create a Django management command for one DEALIoT event stream."""
     service_env = service_key.upper()
+    help_text = f"Consume DEALIoT Kafka raw.{service_key} events into {model_path}."
+    bootstrap_servers_env = f"DEALDATA_{service_env}_KAFKA_BOOTSTRAP_SERVERS"
+    auto_offset_reset_env = f"DEALDATA_{service_env}_KAFKA_AUTO_OFFSET_RESET"
     command_attrs = {
-        "help": (
-            f"Consume DEALIoT Kafka raw.{service_key} events into {model_path}."
-        ),
-        "bootstrap_servers_env": (
-            f"DEALDATA_{service_env}_KAFKA_BOOTSTRAP_SERVERS"
-        ),
+        "help": help_text,
+        "bootstrap_servers_env": bootstrap_servers_env,
         "topic_env": f"DEALDATA_{service_env}_KAFKA_TOPIC",
         "group_id_env": f"DEALDATA_{service_env}_KAFKA_GROUP_ID",
-        "auto_offset_reset_env": (
-            f"DEALDATA_{service_env}_KAFKA_AUTO_OFFSET_RESET"
-        ),
+        "auto_offset_reset_env": auto_offset_reset_env,
         "default_topic": f"raw.{service_key}",
         "default_group_id": f"dealdata-{service_key}-ingest",
         "event_label": event_label,

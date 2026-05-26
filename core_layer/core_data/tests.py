@@ -3,11 +3,11 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-import pytest
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError
 from django.test import Client
+import pytest
 
 from core_data.models import (
     Experiment,
@@ -20,6 +20,11 @@ from core_data.models import (
 )
 
 CHECK = TestCase()
+
+
+def create_test_user(username: str):
+    """Create a user through the configured Django user model."""
+    return get_user_model().objects.create_user(username=username)
 
 
 def test_project_string_representation() -> None:
@@ -46,7 +51,7 @@ def test_uuid7_value_returns_standard_uuid() -> None:
 @pytest.mark.django_db
 def test_project_membership_string_representation() -> None:
     """Memberships expose project, user and role in their string form."""
-    user = User.objects.create_user(username="alice")
+    user = create_test_user(username="alice")
     project = Project.objects.create(
         project_code="DEAL-001",
         project_primary_owner=user,
@@ -63,7 +68,7 @@ def test_project_membership_string_representation() -> None:
 @pytest.mark.django_db
 def test_project_membership_rejects_removing_last_owner() -> None:
     """A project must keep at least one active owner."""
-    user = User.objects.create_user(username="owner")
+    user = create_test_user(username="owner")
     project = Project.objects.create(
         project_code="DEAL-002",
         project_primary_owner=user,
@@ -83,8 +88,8 @@ def test_project_membership_rejects_removing_last_owner() -> None:
 @pytest.mark.django_db
 def test_project_owners_qs_returns_active_owners() -> None:
     """Project owners query excludes inactive or non-owner memberships."""
-    owner = User.objects.create_user(username="owner")
-    viewer = User.objects.create_user(username="viewer")
+    owner = create_test_user(username="owner")
+    viewer = create_test_user(username="viewer")
     project = Project.objects.create(
         project_code="DEAL-003",
         project_primary_owner=owner,
@@ -106,7 +111,7 @@ def test_project_owners_qs_returns_active_owners() -> None:
 @pytest.mark.django_db
 def test_experiment_links_string_representations() -> None:
     """Experiments and experiment-object links have stable string output."""
-    user = User.objects.create_user(username="scientist")
+    user = create_test_user(username="scientist")
     project = Project.objects.create(
         project_code="DEAL-004",
         project_primary_owner=user,
@@ -174,7 +179,7 @@ def test_observability_endpoints_reject_unsafe_methods(path: str) -> None:
 @pytest.mark.django_db
 def test_metrics_exposes_prometheus_counts() -> None:
     """Metrics endpoint exposes core domain counters."""
-    user = User.objects.create_user(username="metrics-owner")
+    user = create_test_user(username="metrics-owner")
     Project.objects.create(
         project_code="DEAL-METRICS",
         project_primary_owner=user,

@@ -8,10 +8,10 @@ import types
 from unittest import TestCase
 from unittest.mock import patch
 
-import pytest
 from django.core.management import call_command
 from django.db import DatabaseError
 from django.test import Client
+import pytest
 from rest_framework.test import APIClient
 
 from dealdata_common.views import INVALID_LIST_QUERY_PARAMETERS_DETAIL
