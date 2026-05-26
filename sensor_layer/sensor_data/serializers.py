@@ -14,7 +14,8 @@ class WildFiSensorIngestSerializer(WildFiEventIngestSerializer):
     sensor_type = serializers.CharField(required=False, allow_blank=True)
     payload = serializers.JSONField()
 
-    def validate_payload(self, value):
+    @staticmethod
+    def validate_payload(value):
         """The decoded WildFi payload must stay queryable as an object."""
         return validate_payload_object(value, allow_empty=False)
 

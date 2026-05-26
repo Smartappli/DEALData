@@ -26,7 +26,8 @@ class WildFiGPSIngestSerializer(WildFiEventIngestSerializer):
     heading_deg = serializers.FloatField(required=False, allow_null=True)
     payload = serializers.JSONField(required=False)
 
-    def validate_payload(self, value):
+    @staticmethod
+    def validate_payload(value):
         """The decoded WildFi payload must stay queryable as an object."""
         return validate_payload_object(value, allow_empty=True)
 

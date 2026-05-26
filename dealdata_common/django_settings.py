@@ -18,7 +18,7 @@ def env_bool(name: str, default: bool = False) -> bool:
     return value.lower() in {"1", "true", "yes", "on"}
 
 
-def env_list(name: str, default: list[str] | None = None) -> list[str]:
+def env_list(name: str, default: list[str] | None=None) -> list[str]:
     """Read a comma-separated list from the environment."""
     value = os.environ.get(name)
     if value is None:
@@ -120,13 +120,15 @@ REST_FRAMEWORK = {
 }
 
 
-def configure_service_settings(namespace: MutableMapping[str, Any],
-                               *,
-                               base_dir: Path,
-                               project_module: str,
-                               app_config: str,
-                               database_name: str,
-                               include_wsgi: bool = True) -> None:
+def configure_service_settings(
+        namespace: MutableMapping[str, Any],
+        *,
+        base_dir: Path,
+        project_module: str,
+        app_config: str,
+        database_name: str,
+        include_wsgi: bool = True,
+) -> None:
     """Populate the standard settings shared by all DEALData services."""
     debug = env_bool("DJANGO_DEBUG", default=True)
     namespace.update(

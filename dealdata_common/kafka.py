@@ -128,7 +128,8 @@ class DealIotKafkaCommand(BaseCommand):
         finally:
             consumer.close()
 
-    def _build_consumer(self, options):
+    @staticmethod
+    def _build_consumer(options):
         bootstrap_servers = csv(options["bootstrap_servers"])
         if not bootstrap_servers:
             raise CommandError("At least one Kafka bootstrap server is required.")
