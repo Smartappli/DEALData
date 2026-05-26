@@ -1,11 +1,14 @@
 """Data models for the GPS layer."""
 
-# pylint: disable=arguments-differ,no-member,no-name-in-module,unsubscriptable-object
+# pylint: disable=no-member,no-name-in-module
 
-from typing import Any, ClassVar
+from typing import Any
 
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Q
+from django.db.models.constraints import BaseConstraint, CheckConstraint, UniqueConstraint
+from django.db.models.fields.json import JSONField
+from django.db.models.indexes import Index
 
 from dealdata_common.models import (
     OBSERVED_OBJECT_ID_HELP_TEXT,
@@ -94,7 +97,7 @@ class ObservedObjectGPSSensor(models.Model):
     )
     observed_object_start_time = models.DateTimeField()
     observed_object_end_time = models.DateTimeField()
-    observed_object_notes = models.JSONField(
+    observed_object_notes = JSONField(
         default=dict,
         verbose_name="GPS Sensor Notes",
         help_text='e.g.: {"type_of_data": "GPS Data Imported from file"}',
@@ -103,16 +106,16 @@ class ObservedObjectGPSSensor(models.Model):
     class Meta:
         """Model metadata for observed object and GPS sensor links."""
 
-        constraints: ClassVar[list[models.BaseConstraint]] = [
-            models.CheckConstraint(
-                condition=models.Q(
+        constraints = [
+            CheckConstraint(
+                condition=Q(
                     observed_object_start_time__lte=F(
                         "observed_object_end_time",
                     ),
                 ),
                 name="ck_timestamp_start_before_end",
             ),
-            models.UniqueConstraint(
+            UniqueConstraint(
                 fields=[
                     "observed_object_gps_sensor_observed_object_id",
                     "observed_object_gps_sensor_gps_sensor",
@@ -208,35 +211,35 @@ class WildFiGPSFix(WildFiEventBase):
     class Meta:
         """Model metadata for decoded WildFi GPS fixes."""
 
-        constraints: ClassVar[list[models.BaseConstraint]] = [
-            models.CheckConstraint(
+        constraints = [
+            CheckConstraint(
                 condition=(
-                    models.Q(latitude__gte=-90.0)
-                    & models.Q(latitude__lte=90.0)
+                    Q(latitude__gte=-90.0)
+                    & Q(latitude__lte=90.0)
                 ),
                 name="ck_wildfi_gps_latitude_range",
             ),
-            models.CheckConstraint(
+            CheckConstraint(
                 condition=(
-                    models.Q(longitude__gte=-180.0)
-                    & models.Q(longitude__lte=180.0)
+                    Q(longitude__gte=-180.0)
+                    & Q(longitude__lte=180.0)
                 ),
                 name="ck_wildfi_gps_longitude_range",
             ),
-            models.UniqueConstraint(
+            UniqueConstraint(
                 fields=["source", "event_id"],
-                condition=~models.Q(event_id=""),
+                condition=~Q(event_id=""),
                 name="uq_wildfi_gps_source_event_id",
             ),
-            models.UniqueConstraint(
+            UniqueConstraint(
                 fields=["source", "payload_hash"],
-                condition=~models.Q(payload_hash=""),
+                condition=~Q(payload_hash=""),
                 name="uq_wildfi_gps_source_payload_hash",
             ),
         ]
-        indexes: ClassVar[list[models.Index]] = [
-            models.Index(fields=["wildfi_device_id", "acquisition_time"]),
-            models.Index(fields=["dealiot_topic", "acquisition_time"]),
+        indexes = [
+            Index(fields=["wildfi_device_id", "acquisition_time"]),
+            Index(fields=["dealiot_topic", "acquisition_time"]),
         ]
 
     @classmethod
@@ -311,7 +314,7 @@ class WildFiGPSFix(WildFiEventBase):
             "coordinates": [self.longitude, self.latitude],
         }
 
-    def save(self, *args, **kwargs):
+    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
         """Ensure directly-created events still have an idempotency hash."""
         if not self.payload_hash:
             payload = event_identity_payload(
@@ -323,7 +326,12 @@ class WildFiGPSFix(WildFiEventBase):
                 heading=self.heading,
             )
             self.payload_hash = _stable_event_hash(payload)
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
     def __str__(self) -> str:
         """Return a readable device and timestamp pair."""
@@ -350,7 +358,7 @@ class ProcessedGPSDataObservedObject(models.Model):
     processed_gps_data_observed_object_acquisition_time = models.DateTimeField()
     processed_gps_data_observed_object_longitude = models.FloatField()
     processed_gps_data_observed_object_latitude = models.FloatField()
-    processed_gps_data_observed_object_geom = models.JSONField(
+    processed_gps_data_observed_object_geom = JSONField(
         default=dict,
         blank=True,
         verbose_name="Processed GPS Geometry",
@@ -358,7 +366,7 @@ class ProcessedGPSDataObservedObject(models.Model):
     )
     processed_gps_data_observed_object_insert_timestamp = models.DateTimeField()
 
-    def save(self, *args, **kwargs):
+    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
         """Populate the geometry from longitude and latitude before saving."""
         lon = self.processed_gps_data_observed_object_longitude
         lat = self.processed_gps_data_observed_object_latitude
@@ -367,4 +375,9 @@ class ProcessedGPSDataObservedObject(models.Model):
                 "type": "Point",
                 "coordinates": [lon, lat],
             }
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
