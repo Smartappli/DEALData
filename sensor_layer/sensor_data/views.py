@@ -3,6 +3,7 @@
 import logging
 
 from dealdata_common.views import (
+    INVALID_LIST_QUERY_PARAMETERS_DETAIL,
     QueryParameterError,
     apply_event_filters,
     batch_ingest_response,
@@ -132,9 +133,9 @@ class WildFiSensorListView(APIView):
             limit, offset, started_at, ended_at = parse_list_params(
                 request.query_params,
             )
-        except QueryParameterError as exc:
+        except QueryParameterError:
             return Response(
-                {"detail": exc.detail},
+                {"detail": INVALID_LIST_QUERY_PARAMETERS_DETAIL},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

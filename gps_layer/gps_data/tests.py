@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 from gps_data.models import GPSSensor, ProcessedGPSDataObservedObject, WildFiGPSFix
+from dealdata_common.views import INVALID_LIST_QUERY_PARAMETERS_DETAIL
 from django.core.management import call_command
 from django.test import Client
 from django.utils import timezone
@@ -323,7 +324,7 @@ def test_wildfi_gps_list_rejects_invalid_datetime() -> None:
     response = APIClient().get("/api/wildfi/gps/", {"from": "not-a-date"})
 
     CHECK.assertEqual(response.status_code, 400)
-    CHECK.assertIn("from", response.data["detail"])
+    CHECK.assertEqual(response.data["detail"], INVALID_LIST_QUERY_PARAMETERS_DETAIL)
 
 
 @pytest.mark.django_db

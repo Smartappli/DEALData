@@ -10,13 +10,11 @@ from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.response import Response
 
+INVALID_LIST_QUERY_PARAMETERS_DETAIL = "Invalid list query parameters."
+
 
 class QueryParameterError(ValueError):
-    """Validation error with a client-safe response detail."""
-
-    def __init__(self, detail: str) -> None:
-        super().__init__("Invalid query parameter.")
-        self.detail = detail
+    """Raised when list query parameters fail validation."""
 
 
 def ingestion_token_error(request) -> Response | None:
