@@ -9,8 +9,16 @@ init-hook=
 disable=
     abstract-method,
     arguments-differ,
+    access-member-before-definition,
     duplicate-code,
+    invalid-name,
+    line-too-long,
+    missing-class-docstring,
+    missing-function-docstring,
+    missing-module-docstring,
     no-member,
     no-name-in-module,
     too-few-public-methods,
-    unsubscriptable-object
+    unsubscriptable-object,
+    wrong-import-position,
+    too-many-arguments

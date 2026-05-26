@@ -29,6 +29,7 @@ COPY ./core_layer/auth/register/*.py ./auth/register/
 COPY ./core_layer/auth/reset_password/*.py ./auth/reset_password/
 COPY ./core_layer/auth/verify_email/*.py ./auth/verify_email/
 COPY ./core_layer/core/*.py ./core/
+COPY ./core_layer/core/template_helpers/*.py ./core/template_helpers/
 COPY ./core_layer/core_data/*.py ./core_data/
 COPY ./core_layer/core_data/migrations/*.py ./core_data/migrations/
 COPY ./core_layer/entrypoint.sh /entrypoint.sh

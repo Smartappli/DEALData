@@ -1,5 +1,8 @@
 ---
 engines:
+  pylint:
+    exclude_paths:
+      - "**/migrations/**"
   pylintpython3:
     exclude_paths:
       - "**/migrations/**"

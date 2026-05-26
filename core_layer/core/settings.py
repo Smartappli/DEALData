@@ -1,4 +1,5 @@
 """Django settings for the core service."""
+# pylint: disable=wrong-import-position
 
 from pathlib import Path
 import sys

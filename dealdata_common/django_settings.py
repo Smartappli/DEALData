@@ -169,7 +169,7 @@ def configure_service_settings(
     sentry_dsn = os.environ.get("SENTRY_DSN", "")
     namespace["SENTRY_DSN"] = sentry_dsn
     if sentry_dsn:
-        import sentry_sdk
+        import sentry_sdk  # pylint: disable=import-outside-toplevel,import-error
 
         sentry_sdk.init(
             dsn=sentry_dsn,

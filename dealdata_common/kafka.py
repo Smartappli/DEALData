@@ -12,6 +12,7 @@ from rest_framework import status
 
 
 def env(*names: str, default: str = "") -> str:
+    """Return the first populated environment variable from the given names."""
     for name in names:
         value = os.environ.get(name)
         if value:
@@ -20,10 +21,12 @@ def env(*names: str, default: str = "") -> str:
 
 
 def csv(value: str) -> list[str]:
+    """Split a comma-separated setting into non-empty trimmed values."""
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
 def decode_json(value: bytes) -> dict[str, Any] | None:
+    """Decode a Kafka message value into a JSON object payload."""
     try:
         decoded = json.loads(value.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -38,8 +41,9 @@ def close_stale_connections() -> None:
 
 
 def load_kafka_consumer():
+    """Import and return kafka-python's consumer class."""
     try:
-        from kafka import KafkaConsumer
+        from kafka import KafkaConsumer  # pylint: disable=import-outside-toplevel
     except ImportError as exc:
         raise CommandError(
             "kafka-python is required to consume DEALIoT Kafka topics.",
@@ -48,6 +52,7 @@ def load_kafka_consumer():
 
 
 def iter_messages(records):
+    """Yield Kafka messages from the records mapping returned by poll()."""
     for messages in records.values():
         yield from messages
 

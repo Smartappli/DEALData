@@ -301,7 +301,7 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
 
     def save(self, *args, **kwargs):
         """Ensure directly-created events still have an idempotency hash."""
-        if not self.payload_hash:
+        if not getattr(self, "payload_hash", ""):
             payload = event_identity_payload(
                 self,
                 sensor_type=self.sensor_type,
