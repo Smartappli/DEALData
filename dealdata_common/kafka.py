@@ -200,11 +200,11 @@ class DealIotKafkaCommand(BaseCommand):
 
 
 def build_dealiot_kafka_command(
-    *,
-    service_key: str,
-    event_label: str,
-    model_path: str,
-    ingest_event: Callable[[dict[str, Any]], tuple[dict[str, Any], int]],
+        *,
+        service_key: str,
+        event_label: str,
+        model_path: str,
+        ingest_event: Callable[[dict[str, Any]], tuple[dict[str, Any], int]],
 ):
     """Create a Django management command for one DEALIoT event stream."""
     service_env = service_key.upper()

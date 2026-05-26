@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.db import IntegrityError
 from django.shortcuts import redirect
 from asgiref.sync import async_to_sync
 
@@ -21,6 +22,28 @@ USER_ALREADY_EXISTS_MESSAGE = "User already exists. Try logging in."
 EMAIL_ALREADY_EXISTS_MESSAGE = "Email already exists."
 USERNAME_ALREADY_EXISTS_MESSAGE = "Username already exists."
 DEFAULT_GROUP_NAME = "client"
+
+
+def get_registration_group() -> Group:
+    """Return the default group assigned to newly registered users."""
+    group = Group.objects.filter(name=DEFAULT_GROUP_NAME).first()
+    if group:
+        return group
+    try:
+        return Group.objects.create(name=DEFAULT_GROUP_NAME)
+    except IntegrityError:
+        return Group.objects.get(name=DEFAULT_GROUP_NAME)
+
+
+def get_user_profile(user) -> Profile:
+    """Return a user's profile, creating it if the signal did not."""
+    profile = Profile.objects.filter(user=user).first()
+    if profile:
+        return profile
+    try:
+        return Profile.objects.create(user=user, email=user.email)
+    except IntegrityError:
+        return Profile.objects.get(user=user)
 
 
 class RegisterView(AuthView):
@@ -82,16 +105,12 @@ class RegisterView(AuthView):
             password=password,
         )
 
-        user_group, _created_group = Group.objects.get_or_create(
-            name=DEFAULT_GROUP_NAME,
-        )
+        user_group = get_registration_group()
         created_user.groups.add(user_group)
 
         verification_token = generate_url_token()
 
-        user_profile, _created_profile = Profile.objects.get_or_create(
-            user=created_user,
-        )
+        user_profile = get_user_profile(created_user)
         user_profile.email_token = hash_url_token(verification_token)
         user_profile.email = email
         user_profile.save()

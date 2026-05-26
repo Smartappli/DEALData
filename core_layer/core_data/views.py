@@ -8,7 +8,7 @@ from django.views.decorators.http import require_safe
 
 from .models import Experiment, ObservedObject, Project
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 @require_safe
@@ -27,7 +27,7 @@ def health_ready(request):
             cursor.execute("SELECT 1")
             cursor.fetchone()
     except DatabaseError:
-        logger.warning("Core database readiness check failed.")
+        LOGGER.warning("Core database readiness check failed.")
         return JsonResponse(
             {
                 "status": "error",

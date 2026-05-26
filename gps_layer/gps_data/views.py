@@ -22,7 +22,7 @@ from .ingestion import ingest_dealiot_gps_event
 from .models import WildFiGPSFix
 from .serializers import WildFiGPSBatchSerializer
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 @require_safe
@@ -41,7 +41,7 @@ def health_ready(request):
             cursor.execute("SELECT 1")
             cursor.fetchone()
     except DatabaseError:
-        logger.warning("GPS database readiness check failed.")
+        LOGGER.warning("GPS database readiness check failed.")
         return JsonResponse(
             {
                 "status": "error",

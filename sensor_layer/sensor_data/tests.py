@@ -9,11 +9,12 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
-from dealdata_common.views import INVALID_LIST_QUERY_PARAMETERS_DETAIL
 from django.core.management import call_command
 from django.db import DatabaseError
 from django.test import Client
 from rest_framework.test import APIClient
+
+from dealdata_common.views import INVALID_LIST_QUERY_PARAMETERS_DETAIL
 from sensor_data.models import Sensor, SensorData, WildFiDecodedSensorEvent
 
 CHECK = TestCase()

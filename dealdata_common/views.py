@@ -11,6 +11,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 INVALID_LIST_QUERY_PARAMETERS_DETAIL = "Invalid list query parameters."
+IngestEvent = Callable[[dict], tuple[dict, int]]
 
 
 class QueryParameterError(ValueError):
@@ -30,12 +31,7 @@ def ingestion_token_error(request) -> Response | None:
     )
 
 
-def parse_positive_int(
-    value: str | None,
-    field_name: str,
-    default: int,
-    maximum: int,
-) -> int:
+def parse_positive_int(value: str | None, field_name: str, default: int, maximum: int) -> int:
     """Parse a non-negative integer query value and cap it at a maximum."""
     if value in (None, ""):
         return default
@@ -100,12 +96,7 @@ def apply_event_filters(queryset, query_params, started_at, ended_at):
     return queryset
 
 
-def batch_ingest_response(
-    data,
-    *,
-    serializer_class,
-    ingest_event: Callable[[dict], tuple[dict, int]],
-) -> Response:
+def batch_ingest_response(data, *, serializer_class, ingest_event: IngestEvent) -> Response:
     """Validate and ingest a batch payload, reporting per-event outcomes."""
     if isinstance(data, list):
         data = {"events": data}

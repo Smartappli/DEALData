@@ -2,9 +2,10 @@
 
 from unittest import TestCase
 
+from django.test import RequestFactory
+
 from auth.redirects import get_safe_next_url
 from auth.tokens import TOKEN_DIGEST_LENGTH, generate_url_token, hash_url_token
-from django.test import RequestFactory
 
 CHECK = TestCase()
 

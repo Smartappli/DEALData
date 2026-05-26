@@ -77,6 +77,37 @@ class VerifyEmailView(AuthView):
     """
 
 
+def get_email_and_message(request):
+    """
+    Resolve the recipient email and the message to display.
+
+    Rules:
+    - If authenticated, use the email from the user's profile.
+    - If not authenticated, use `request.session["email"]` if present.
+    - If email settings are missing, return an error message.
+
+    Args:
+        request: Django HttpRequest.
+
+    Returns:
+        A tuple `(email, success_message, error_message)` where:
+            - `email` is a string or None
+            - `success_message` is a string or None
+            - `error_message` is a string or None
+
+    """
+    if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+        return None, None, EMAIL_NOT_CONFIGURED_MESSAGE
+
+    if request.user.is_authenticated:
+        profile = Profile.objects.filter(user=request.user).first()
+        email = profile.email if profile else None
+        return email, VERIFICATION_EMAIL_SENT_MESSAGE, None
+
+    email = request.session.get("email")
+    return email, VERIFICATION_EMAIL_RESENT_MESSAGE, None
+
+
 class SendVerificationView(AuthView):
     """
     Generate and send a verification email.
@@ -103,7 +134,7 @@ class SendVerificationView(AuthView):
 
         """
         del args, kwargs
-        email, success_message, error_message = self.get_email_and_message(
+        email, success_message, error_message = get_email_and_message(
             request,
         )
 
@@ -127,33 +158,3 @@ class SendVerificationView(AuthView):
         messages.success(request, success_message)
 
         return redirect("verify-email-page")
-
-    def get_email_and_message(self, request):
-        """
-        Resolve the recipient email and the message to display.
-
-        Rules:
-        - If authenticated, use the email from the user's profile.
-        - If not authenticated, use `request.session["email"]` if present.
-        - If email settings are missing, return an error message.
-
-        Args:
-            request: Django HttpRequest.
-
-        Returns:
-            A tuple `(email, success_message, error_message)` where:
-            - `email` is a string or None
-            - `success_message` is a string or None
-            - `error_message` is a string or None
-
-        """
-        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
-            return None, None, EMAIL_NOT_CONFIGURED_MESSAGE
-
-        if request.user.is_authenticated:
-            profile = Profile.objects.filter(user=request.user).first()
-            email = profile.email if profile else None
-            return email, VERIFICATION_EMAIL_SENT_MESSAGE, None
-
-        email = request.session.get("email")
-        return email, VERIFICATION_EMAIL_RESENT_MESSAGE, None
