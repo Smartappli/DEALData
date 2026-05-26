@@ -1,5 +1,9 @@
 ---
 engines:
+  pylintpython3:
+    exclude_paths:
+      - "**/migrations/**"
   ruff:
     exclude_paths:
       - "uv.lock"
+      - "**/requirements*.txt"

@@ -1,6 +1,6 @@
 """Models for the authentication application."""
 
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -10,7 +10,7 @@ class Profile(models.Model):
     """Profile associated with a Django user."""
 
     user = models.OneToOneField(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="profile",
     )
@@ -42,7 +42,7 @@ class Profile(models.Model):
         return self.user.username
 
 
-@receiver(post_save, sender=User)
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile(sender, instance, created, **kwargs):
     """Create a profile automatically when a new user is created."""
     del sender, kwargs

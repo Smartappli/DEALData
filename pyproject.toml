@@ -31,7 +31,10 @@ test = [
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 
 [tool.ruff]
-extend-exclude = ["uv.lock"]
+extend-exclude = [
+    "uv.lock",
+    "**/requirements*.txt",
+]
 force-exclude = true
 
 [tool.ruff.lint.per-file-ignores]

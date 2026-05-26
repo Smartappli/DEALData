@@ -13,13 +13,14 @@ from django.utils import timezone
 class ResetPasswordView(AuthView):
     """Handle password reset requests using a reset token."""
 
-    async def get(self, request, token):
+    def get(self, request, *args, **kwargs):
         """
         Display the password reset form.
 
         Args:
             request: Django HTTP request.
-            token: Password reset token from the URL.
+            *args: Positional URL arguments.
+            **kwargs: Keyword URL arguments.
 
         Returns:
             An HTTP redirect response or the rendered reset password page.
@@ -28,7 +29,7 @@ class ResetPasswordView(AuthView):
         if request.user.is_authenticated:
             return redirect("index")
 
-        return await sync_to_async(super().get)(request)
+        return super().get(request, *args, **kwargs)
 
     async def post(self, request, token):
         """
