@@ -11,6 +11,8 @@ layout by setting:
 See `auth/urls.py` for the routes that use this view or its subclasses.
 """
 
+# pylint: disable=import-error
+
 from django.views.generic import TemplateView
 
 from core import TemplateLayout

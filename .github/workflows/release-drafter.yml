@@ -11,6 +11,8 @@ concurrency:
   group: release-drafter-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: read-all
+
 jobs:
   update-release-draft:
     if: github.event_name != 'pull_request' || github.event.pull_request.merged == true

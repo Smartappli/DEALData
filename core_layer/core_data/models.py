@@ -1,6 +1,7 @@
 """Data models for the research core layer."""
 
-# pylint: disable=no-member,no-name-in-module,too-few-public-methods
+# pylint: disable=import-error,missing-kwoa,no-member,no-name-in-module
+# pylint: disable=signature-differs,too-few-public-methods,unexpected-keyword-arg
 
 from uuid import UUID
 

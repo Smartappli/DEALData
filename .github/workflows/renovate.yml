@@ -9,6 +9,8 @@ concurrency:
   group: renovate-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: read-all
+
 jobs:
   renovate:
     runs-on: ubuntu-latest

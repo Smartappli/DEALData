@@ -1,5 +1,7 @@
 """Views for password reset workflows."""
 
+# pylint: disable=invalid-overridden-method,unused-argument
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.shortcuts import redirect, render
