@@ -1,5 +1,7 @@
 """Data models for the sensor layer."""
 
+# pylint: disable=arguments-differ,no-member,no-name-in-module,unsubscriptable-object
+
 from __future__ import annotations
 
 from typing import Any, ClassVar

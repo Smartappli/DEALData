@@ -11,9 +11,10 @@ layout by setting:
 See `auth/urls.py` for the routes that use this view or its subclasses.
 """
 
+from django.views.generic import TemplateView
+
 from core import TemplateLayout
 from core.template_helpers.theme import TemplateHelper
-from django.views.generic import TemplateView
 
 
 class AuthView(TemplateView):

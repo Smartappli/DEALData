@@ -50,10 +50,9 @@ class ResetPasswordView(AuthView):
             messages.error(request, "Invalid or expired token.")
             return redirect("forgot-password")
 
-        if (
-            profile.forget_password_token_expires_at
-            and timezone.now() > profile.forget_password_token_expires_at
-        ):
+        expires_at = profile.forget_password_token_expires_at
+        reset_token_expired = expires_at and timezone.now() > expires_at
+        if reset_token_expired:
             profile.forget_password_token = None
             profile.forget_password_token_expires_at = None
             profile.save()
