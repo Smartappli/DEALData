@@ -14,8 +14,8 @@ from django.test import Client
 import pytest
 from rest_framework.test import APIClient
 
-from dealdata_common.views import INVALID_LIST_QUERY_PARAMETERS_DETAIL
 from sensor_data.models import Sensor, SensorData, WildFiDecodedSensorEvent
+from dealdata_common.views import INVALID_LIST_QUERY_PARAMETERS_DETAIL
 
 CHECK = TestCase()
 
