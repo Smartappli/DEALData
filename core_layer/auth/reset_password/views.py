@@ -43,12 +43,8 @@ class ResetPasswordView(AuthView):
             An HTTP redirect response or the rendered reset password page.
 
         """
-        profile = (
-            Profile.objects.filter(
-                forget_password_token=hash_url_token(token),
-            )
-            .first()
-        )
+        token_hash = hash_url_token(token)
+        profile = Profile.objects.filter(forget_password_token=token_hash).first()
         if not profile:
             messages.error(request, "Invalid or expired token.")
             return redirect("forgot-password")

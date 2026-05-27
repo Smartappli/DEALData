@@ -3,7 +3,6 @@
 from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import redirect
-from asgiref.sync import async_to_sync
 
 from auth.helpers import send_verification_email
 from auth.models import Profile
@@ -154,7 +153,7 @@ class SendVerificationView(AuthView):
 
         user_profile.email_token = hash_url_token(verification_token)
         user_profile.save()
-        async_to_sync(send_verification_email)(email, verification_token)
+        send_verification_email(email, verification_token)
         messages.success(request, success_message)
 
         return redirect("verify-email-page")
