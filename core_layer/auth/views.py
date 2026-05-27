@@ -11,7 +11,7 @@ layout by setting:
 See `auth/urls.py` for the routes that use this view or its subclasses.
 """
 
-# pylint: disable=import-error
+# pylint: disable=import-error,wrong-import-order
 
 from django.views.generic import TemplateView
 
@@ -37,7 +37,7 @@ class AuthView(TemplateView):
         Returns:
             A context dictionary enriched with:
                 - layout_path: resolved blank layout template path
-            and any global layout context initialized by `TemplateLayout.init()`.
+            and any global layout context initialized by the template layout.
 
         """
         context = TemplateLayout.init(self, super().get_context_data(**kwargs))
