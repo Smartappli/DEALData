@@ -44,7 +44,8 @@ class ResetPasswordView(AuthView):
 
         """
         token_hash = hash_url_token(token)
-        profile = Profile.objects.filter(forget_password_token=token_hash).first()
+        profile_qs = Profile.objects.filter(forget_password_token=token_hash)
+        profile = profile_qs.first()
         if not profile:
             messages.error(request, "Invalid or expired token.")
             return redirect("forgot-password")
