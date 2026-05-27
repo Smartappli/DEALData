@@ -18,7 +18,7 @@ def env_bool(name: str, default: bool = False) -> bool:
     return value.lower() in {"1", "true", "yes", "on"}
 
 
-def env_list(name: str, default: list[str] | None=None) -> list[str]:
+def env_list(name: str, default: list[str] | None = None) -> list[str]:
     """Read a comma-separated list from the environment."""
     value = os.environ.get(name)
     if value is None:
