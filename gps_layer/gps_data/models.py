@@ -362,7 +362,9 @@ class ProcessedGPSDataObservedObject(models.Model):
         verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
         help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
-    processed_gps_data_observed_object_acquisition_time = models.DateTimeField()
+    processed_gps_data_observed_object_acquisition_time = (
+        models.DateTimeField()
+    )
     processed_gps_data_observed_object_longitude = models.FloatField()
     processed_gps_data_observed_object_latitude = models.FloatField()
     processed_gps_data_observed_object_geom = JSONField(
@@ -371,7 +373,9 @@ class ProcessedGPSDataObservedObject(models.Model):
         verbose_name="Processed GPS Geometry",
         help_text="GeoJSON point in EPSG:4326.",
     )
-    processed_gps_data_observed_object_insert_timestamp = models.DateTimeField()
+    processed_gps_data_observed_object_insert_timestamp = (
+        models.DateTimeField()
+    )
 
     def save(
         self,
