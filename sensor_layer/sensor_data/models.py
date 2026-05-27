@@ -275,7 +275,7 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
         *,
         topic: str = "raw.sensor",
     ) -> "WildFiDecodedSensorEvent":
-        """Build a sensor event from the decoded DEALIoT `raw.sensor` contract."""
+        """Build a sensor event from the decoded DEALIoT contract."""
         payload = _payload_dict(event.get("payload"))
         device_id = event.get("device_id") or payload.get("device_id")
         if not device_id:
