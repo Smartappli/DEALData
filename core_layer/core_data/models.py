@@ -2,7 +2,8 @@
 
 # pylint: disable=arguments-differ,import-error,missing-kwoa,no-member
 # pylint: disable=no-name-in-module
-# pylint: disable=signature-differs,too-few-public-methods,unexpected-keyword-arg
+# pylint: disable=signature-differs,too-few-public-methods
+# pylint: disable=unexpected-keyword-arg
 
 from django.conf import settings
 from django.core.exceptions import ValidationError

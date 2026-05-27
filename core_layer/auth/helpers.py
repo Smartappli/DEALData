@@ -53,8 +53,8 @@ def get_absolute_url(path):
     Build an absolute URL from a relative path.
 
     Args:
-        path: A relative URL path (e.g. "/verify/abc123/") typically returned by
-            `django.urls.reverse()`.
+        path: A relative URL path, typically returned by
+            `django.urls.reverse()`, such as "/verify/abc123/".
 
     Returns:
         An absolute URL combining `settings.BASE_URL` and the provided path.
@@ -79,7 +79,10 @@ async def send_verification_email(email, token):
     verification_url = get_absolute_url(
         reverse("verify-email", kwargs={"token": token}),
     )
-    message = f"Hi,\n\nPlease verify your email using this link: {verification_url}"
+    message = (
+        "Hi,\n\nPlease verify your email using this link: "
+        f"{verification_url}"
+    )
     await send_email(subject, email, message)
 
 
