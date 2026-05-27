@@ -1,6 +1,7 @@
 """Data models for the GPS layer."""
 
-# pylint: disable=import-error,missing-kwoa,no-member,no-name-in-module
+# pylint: disable=arguments-differ,import-error,missing-kwoa
+# pylint: disable=no-member,no-name-in-module
 # pylint: disable=signature-differs,unexpected-keyword-arg
 
 from typing import Any
@@ -317,6 +318,7 @@ class WildFiGPSFix(WildFiEventBase):
 
     def save(
         self,
+        *,
         force_insert=False,
         force_update=False,
         using=None,
@@ -379,6 +381,7 @@ class ProcessedGPSDataObservedObject(models.Model):
 
     def save(
         self,
+        *,
         force_insert=False,
         force_update=False,
         using=None,

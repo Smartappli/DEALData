@@ -1,6 +1,7 @@
 """Data models for the sensor layer."""
 
-# pylint: disable=import-error,missing-kwoa,no-member,no-name-in-module
+# pylint: disable=arguments-differ,import-error,missing-kwoa
+# pylint: disable=no-member,no-name-in-module
 # pylint: disable=signature-differs,unexpected-keyword-arg
 
 from typing import Any
@@ -308,6 +309,7 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
 
     def save(
         self,
+        *,
         force_insert=False,
         force_update=False,
         using=None,
