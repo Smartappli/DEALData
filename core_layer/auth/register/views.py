@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import IntegrityError
 from django.shortcuts import redirect
-from asgiref.sync import async_to_sync
 
 from auth.helpers import send_verification_email
 from auth.models import Profile
@@ -115,7 +114,7 @@ class RegisterView(AuthView):
         user_profile.email = email
         user_profile.save()
 
-        async_to_sync(send_verification_email)(email, verification_token)
+        send_verification_email(email, verification_token)
 
         if settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD:
             messages.success(request, VERIFICATION_EMAIL_SENT_MESSAGE)

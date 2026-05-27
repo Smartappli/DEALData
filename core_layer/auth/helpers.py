@@ -7,17 +7,13 @@ from urllib.parse import urljoin
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.urls import reverse
-from asgiref.sync import sync_to_async
 
 LOGGER = logging.getLogger(__name__)
 
 
-async def send_email(subject, email, message):
+def send_email(subject, email, message):
     """
-    Send an email asynchronously using Django's synchronous email backend.
-
-    This helper wraps `EmailMessage.send()` (a blocking call) with
-    `asgiref.sync.sync_to_async()` so it can be awaited from async views/tasks.
+    Send an email using Django's configured email backend.
 
     Args:
         subject: Email subject line.
@@ -43,7 +39,7 @@ async def send_email(subject, email, message):
     recipient_list = [email]
     email_message = EmailMessage(subject, message, email_from, recipient_list)
     try:
-        await sync_to_async(email_message.send)()
+        email_message.send()
     except (OSError, SMTPException):
         LOGGER.exception("Failed to send email.")
 
@@ -63,7 +59,7 @@ def get_absolute_url(path):
     return urljoin(settings.BASE_URL, path)
 
 
-async def send_verification_email(email, token):
+def send_verification_email(email, token):
     """
     Send an email verification link to a user.
 
@@ -83,10 +79,10 @@ async def send_verification_email(email, token):
         "Hi,\n\nPlease verify your email using this link: "
         f"{verification_url}"
     )
-    await send_email(subject, email, message)
+    send_email(subject, email, message)
 
 
-async def send_password_reset_email(email, token):
+def send_password_reset_email(email, token):
     """
     Send a password reset link to a user.
 
@@ -103,4 +99,4 @@ async def send_password_reset_email(email, token):
         reverse("reset-password", kwargs={"token": token}),
     )
     message = f"Hi,\n\nPlease reset your password using this link: {reset_url}"
-    await send_email(subject, email, message)
+    send_email(subject, email, message)

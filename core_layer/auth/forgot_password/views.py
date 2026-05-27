@@ -8,7 +8,6 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.shortcuts import redirect
 from django.utils import timezone
-from asgiref.sync import async_to_sync
 
 from auth.helpers import send_password_reset_email
 from auth.models import Profile
@@ -86,7 +85,7 @@ class ForgetPasswordView(AuthView):
             user_profile.forget_password_token_expires_at = expiration_time
             user_profile.save()
 
-            async_to_sync(send_password_reset_email)(email, reset_token)
+            send_password_reset_email(email, reset_token)
 
         if settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD:
             messages.success(request, RESET_LINK_SENT_MESSAGE)
