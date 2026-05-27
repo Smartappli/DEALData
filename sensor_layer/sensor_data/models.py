@@ -270,10 +270,10 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
 
     @classmethod
     def from_dealiot_event(
-            cls,
-            event: dict[str, Any],
-            *,
-            topic: str = "raw.sensor",
+        cls,
+        event: dict[str, Any],
+        *,
+        topic: str = "raw.sensor",
     ) -> "WildFiDecodedSensorEvent":
         """Build a sensor event from the decoded DEALIoT `raw.sensor` contract."""
         payload = _payload_dict(event.get("payload"))
@@ -306,7 +306,13 @@ class WildFiDecodedSensorEvent(WildFiEventBase):
             message_metadata=_event_metadata(event),
         )
 
-    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
+    def save(
+        self,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
+    ):
         """Ensure directly-created events still have an idempotency hash."""
         if not getattr(self, "payload_hash", ""):
             payload = event_identity_payload(

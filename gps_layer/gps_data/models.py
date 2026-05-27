@@ -245,10 +245,10 @@ class WildFiGPSFix(WildFiEventBase):
 
     @classmethod
     def from_dealiot_event(
-            cls,
-            event: dict[str, Any],
-            *,
-            topic: str = "raw.gps",
+        cls,
+        event: dict[str, Any],
+        *,
+        topic: str = "raw.gps",
     ) -> "WildFiGPSFix":
         """Build a GPS fix from the decoded DEALIoT `raw.gps` contract."""
         payload = _payload_dict(event.get("payload"))
@@ -315,7 +315,13 @@ class WildFiGPSFix(WildFiEventBase):
             "coordinates": [self.longitude, self.latitude],
         }
 
-    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
+    def save(
+        self,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
+    ):
         """Ensure directly-created events still have an idempotency hash."""
         if not self.payload_hash:
             payload = event_identity_payload(
@@ -367,7 +373,13 @@ class ProcessedGPSDataObservedObject(models.Model):
     )
     processed_gps_data_observed_object_insert_timestamp = models.DateTimeField()
 
-    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
+    def save(
+        self,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
+    ):
         """Populate the geometry from longitude and latitude before saving."""
         lon = self.processed_gps_data_observed_object_longitude
         lat = self.processed_gps_data_observed_object_latitude

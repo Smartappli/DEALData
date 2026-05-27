@@ -100,10 +100,20 @@ TEMPLATES = [
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "UserAttributeSimilarityValidator"
+        ),
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "NumericPasswordValidator"
+        ),
+    },
 ]
 
 PASSWORD_HASHERS = [
@@ -121,13 +131,13 @@ REST_FRAMEWORK = {
 
 
 def configure_service_settings(
-        namespace: MutableMapping[str, Any],
-        *,
-        base_dir: Path,
-        project_module: str,
-        app_config: str,
-        database_name: str,
-        include_wsgi: bool = True,
+    namespace: MutableMapping[str, Any],
+    *,
+    base_dir: Path,
+    project_module: str,
+    app_config: str,
+    database_name: str,
+    include_wsgi: bool = True,
 ) -> None:
     """Populate the standard settings shared by all DEALData services."""
     debug = env_bool("DJANGO_DEBUG", default=True)
@@ -155,8 +165,13 @@ def configure_service_settings(
         SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO", "https"),
         SESSION_COOKIE_SECURE=not debug,
         CSRF_COOKIE_SECURE=not debug,
-        SECURE_SSL_REDIRECT=env_bool("DJANGO_SECURE_SSL_REDIRECT", default=False),
-        SECURE_HSTS_SECONDS=int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "0")),
+        SECURE_SSL_REDIRECT=env_bool(
+            "DJANGO_SECURE_SSL_REDIRECT",
+            default=False,
+        ),
+        SECURE_HSTS_SECONDS=int(
+            os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "0"),
+        ),
         SECURE_HSTS_INCLUDE_SUBDOMAINS=env_bool(
             "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",
         ),
