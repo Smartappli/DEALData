@@ -2,13 +2,13 @@
 
 from datetime import timedelta
 
+from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.shortcuts import redirect
 from django.utils import timezone
-from asgiref.sync import async_to_sync
 
 from auth.helpers import send_password_reset_email
 from auth.models import Profile

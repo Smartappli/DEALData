@@ -4,10 +4,10 @@ import logging
 from smtplib import SMTPException
 from urllib.parse import urljoin
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.urls import reverse
-from asgiref.sync import sync_to_async
 
 LOGGER = logging.getLogger(__name__)
 

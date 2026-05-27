@@ -6,20 +6,21 @@ from datetime import UTC, datetime
 import hashlib
 import json
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid7
 
 from django.db import models
 from django.utils.dateparse import parse_datetime
-from uuid_utils import uuid7
 
 
 OBSERVED_OBJECT_ID_VERBOSE_NAME = "Observed Object ID"
-OBSERVED_OBJECT_ID_HELP_TEXT = "UUID of the observed object managed by the core layer."
+OBSERVED_OBJECT_ID_HELP_TEXT = (
+    "UUID of the observed object managed by the core layer."
+)
 
 
 def uuid7_value() -> UUID:
     """Return a UUIDv7 value compatible with Django UUIDField."""
-    return UUID(str(uuid7()))
+    return uuid7()
 
 
 def parse_event_datetime(value: Any, field_name: str) -> datetime:
@@ -32,14 +33,19 @@ def parse_event_datetime(value: Any, field_name: str) -> datetime:
         parsed = None
 
     if parsed is None:
-        message = f"DEALIoT event field '{field_name}' must be an ISO datetime."
+        message = (
+            f"DEALIoT event field '{field_name}' must be an ISO datetime."
+        )
         raise ValueError(message)
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
     return parsed
 
 
-def parse_optional_event_datetime(value: Any, field_name: str) -> datetime | None:
+def parse_optional_event_datetime(
+    value: Any,
+    field_name: str,
+) -> datetime | None:
     """Parse an optional ISO datetime from a DEALIoT event."""
     if value in (None, ""):
         return None
@@ -56,10 +62,10 @@ def payload_dict(value: Any) -> dict[str, Any]:
 
 
 def event_float(
-        event: dict[str, Any],
-        payload: dict[str, Any],
-        *field_names: str,
-        required: bool = False,
+    event: dict[str, Any],
+    payload: dict[str, Any],
+    *field_names: str,
+    required: bool = False,
 ) -> float | None:
     """Extract a float from top-level DEALIoT fields or decoded payload."""
     for field_name in field_names:

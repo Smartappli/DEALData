@@ -1,9 +1,9 @@
 """Views for email verification workflows."""
 
+from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import redirect
-from asgiref.sync import async_to_sync
 
 from auth.helpers import send_verification_email
 from auth.models import Profile

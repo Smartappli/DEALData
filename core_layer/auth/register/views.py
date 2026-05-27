@@ -1,12 +1,12 @@
 """Views for user registration workflows."""
 
+from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import IntegrityError
 from django.shortcuts import redirect
-from asgiref.sync import async_to_sync
 
 from auth.helpers import send_verification_email
 from auth.models import Profile

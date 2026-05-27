@@ -1,9 +1,8 @@
 """Data models for the research core layer."""
 
-# pylint: disable=import-error,missing-kwoa,no-member,no-name-in-module
+# pylint: disable=arguments-differ,import-error,missing-kwoa,no-member
+# pylint: disable=no-name-in-module
 # pylint: disable=signature-differs,too-few-public-methods,unexpected-keyword-arg
-
-from uuid import UUID
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -12,12 +11,7 @@ from django.db.models.constraints import UniqueConstraint
 from django.db.models.enums import TextChoices
 from django.db.models.fields.json import JSONField
 from django.db.models.indexes import Index
-from uuid_utils import uuid7
-
-
-def uuid7_value() -> UUID:
-    """Return a UUIDv7 value compatible with Django UUIDField."""
-    return UUID(str(uuid7()))
+from dealdata_common.models import uuid7_value
 
 
 class ProjectRole(TextChoices):
@@ -177,7 +171,14 @@ class ProjectMembership(models.Model):
                 message = "A project must have at least one active owner."
                 raise ValidationError(message)
 
-    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
+    def save(
+        self,
+        *,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
+    ):
         """Validate the model before saving it."""
         self.full_clean()
         return super().save(
