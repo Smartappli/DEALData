@@ -1,8 +1,8 @@
 """Consume DEALIoT Kafka `raw.sensor` events into the sensor layer."""
 
-from dealdata_common.kafka import build_dealiot_kafka_command
-
 from sensor_data.ingestion import ingest_dealiot_sensor_event
+
+from dealdata_common.kafka import build_dealiot_kafka_command
 
 Command = build_dealiot_kafka_command(
     service_key="sensor",
