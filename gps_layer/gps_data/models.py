@@ -317,12 +317,12 @@ class WildFiGPSFix(WildFiEventBase):
         }
 
     def save(
-            self,
-            *,
-            force_insert=False,
-            force_update=False,
-            using=None,
-            update_fields=None,
+        self,
+        *args,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
     ):
         """Ensure directly-created events still have an idempotency hash."""
         if not self.payload_hash:
@@ -336,6 +336,7 @@ class WildFiGPSFix(WildFiEventBase):
             )
             self.payload_hash = _stable_event_hash(payload)
         super().save(
+            *args,
             force_insert=force_insert,
             force_update=force_update,
             using=using,
@@ -380,12 +381,12 @@ class ProcessedGPSDataObservedObject(models.Model):
     )
 
     def save(
-            self,
-            *,
-            force_insert=False,
-            force_update=False,
-            using=None,
-            update_fields=None,
+        self,
+        *args,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
     ):
         """Populate the geometry from longitude and latitude before saving."""
         lon = self.processed_gps_data_observed_object_longitude
@@ -396,6 +397,7 @@ class ProcessedGPSDataObservedObject(models.Model):
                 "coordinates": [lon, lat],
             }
         super().save(
+            *args,
             force_insert=force_insert,
             force_update=force_update,
             using=using,
