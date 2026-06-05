@@ -5,7 +5,7 @@ requires-python = ">=3.14.5"
 dependencies = [
     "Django[argon2]==6.0.5",
     "django-filter==25.2",
-    "django-health-check[psutil]==4.4.1",
+    "django-health-check[psutil]==4.4.2",
     "django-valkey[lz4]==0.4.1",
     "djangorestframework==3.17.1",
     "djangorestframework-simplejwt==5.5.1",
