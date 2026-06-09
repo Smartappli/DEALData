@@ -235,22 +235,22 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", marker = "extra == 'test'" },
-    { name = "django", extras = ["argon2"], specifier = "==6.0.5" },
+    { name = "django", extras = ["argon2"], specifier = "==6.0.6" },
     { name = "django-filter", specifier = "==25.2" },
-    { name = "django-health-check", extras = ["psutil"], specifier = "==4.4.1" },
+    { name = "django-health-check", extras = ["psutil"], specifier = "==4.4.2" },
     { name = "django-valkey", extras = ["lz4"], specifier = "==0.4.1" },
     { name = "djangorestframework", specifier = "==3.17.1" },
     { name = "djangorestframework-simplejwt", specifier = "==5.5.1" },
     { name = "djangorestframework-stubs", specifier = ">=3.17.0" },
     { name = "granian", specifier = "==2.7.5" },
-    { name = "kafka-python", specifier = "==2.3.1" },
+    { name = "kafka-python", specifier = "==2.3.2" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = "==3.3.4" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-cov", marker = "extra == 'test'" },
     { name = "pytest-django", marker = "extra == 'test'" },
     { name = "python-dotenv", specifier = "==1.2.2" },
-    { name = "sentry-sdk", extras = ["django"], specifier = "==2.61.0" },
-    { name = "servestatic", extras = ["brotli"], specifier = "==4.3.0" },
+    { name = "sentry-sdk", extras = ["django"], specifier = "==2.61.1" },
+    { name = "servestatic", extras = ["brotli"], specifier = "==4.3.1" },
     { name = "uuid-utils", specifier = "==0.16.0" },
     { name = "valkey", specifier = "==6.1.1" },
 ]
@@ -258,16 +258,16 @@ provides-extras = ["test"]
 
 [[package]]
 name = "django"
-version = "6.0.5"
+version = "6.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/f1/bf85f0d29ef76abf901f193fe8fef4769d3da7794197832bc30151c071d8/django-6.0.5.tar.gz", hash = "sha256:bc6d6872e98a2864c836e42edd644b362db311147dd5aa8d5b82ba7a032f5269", size = 10924131, upload-time = "2026-05-05T13:54:39.329Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/29/ac41e16097af67066d97a7d5775c5d8e7efc5d0284f6b0a159e07b9adb92/django-6.0.6.tar.gz", hash = "sha256:ad03916ba59523d781ae5c3f631960c23d69a9d9c43cecda52fc23b47e953713", size = 10905525, upload-time = "2026-06-03T13:02:46.503Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/5b/1328f8b84fce040c404f76822bf8c57d254e368e8cbd8bd67ec2b26d75f5/django-6.0.5-py3-none-any.whl", hash = "sha256:9d58a7cb49244e74c8e161d5e403a46d6209f1009ba40f5a66d6aa0d0786a8f0", size = 8368680, upload-time = "2026-05-05T13:54:33.532Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/50/23f9dc45483419a3cc2085b498b25adfbf10642b2941c73e6d2dfaffc9ab/django-6.0.6-py3-none-any.whl", hash = "sha256:25148b1194c47c2e685e5f5e9c5d59c78b075dfd282cb9618861ba6c1708f4d2", size = 8373354, upload-time = "2026-06-03T13:02:41.72Z" },
 ]
 
 [package.optional-dependencies]
@@ -289,15 +289,15 @@ wheels = [
 
 [[package]]
 name = "django-health-check"
-version = "4.4.1"
+version = "4.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "dnspython" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d8/c3/99dbf858f939cbf709bf82648daa63632a81484d59b888e92ec687601091/django_health_check-4.4.1.tar.gz", hash = "sha256:2658c21710c09632f75318bb66b5865ff0721f82bab812193d479680773e4c0b", size = 21751, upload-time = "2026-05-15T16:08:37.517Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/44/740dc2932839592e5575d40a00b83252e3bb6347e7c7d23f57139cffee97/django_health_check-4.4.2.tar.gz", hash = "sha256:ad6669bab773ef74714bb45b9cea692da2054dd68c197282db56709afd6d55bf", size = 21824, upload-time = "2026-06-03T19:08:14.836Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/df/697390fe7bdfefd1e48e29c190ebe255c45db4c1819d58b76fbc826bc5a8/django_health_check-4.4.1-py3-none-any.whl", hash = "sha256:363d94e839c90a75e822694f260ca31bd42978d948ad77ea1df18c7f68ff9021", size = 26877, upload-time = "2026-05-15T16:08:36.192Z" },
+    { url = "https://files.pythonhosted.org/packages/de/c7/a850fd1e64b6ad3073f4547fc625b5f0102eba5e25d481c6272916cee7a9/django_health_check-4.4.2-py3-none-any.whl", hash = "sha256:92bcce5da4922d8eaac582c110940e232dcbfce15b9a5cb8c014021ddda41a84", size = 26927, upload-time = "2026-06-03T19:08:13.185Z" },
 ]
 
 [package.optional-dependencies]
@@ -451,11 +451,11 @@ wheels = [
 
 [[package]]
 name = "kafka-python"
-version = "2.3.1"
+version = "2.3.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a4/98/cbecbe20ec9e4e6f978c42229e7c777f498eec5061f986b4acfa34a7ec46/kafka_python-2.3.1.tar.gz", hash = "sha256:90f1caa12d8faa9fd059852b0c73adf169b979279aa2e3ff370f9fe615d654b6", size = 357302, upload-time = "2026-04-09T21:10:22.861Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/7e/9eb4363e5018b71edf77de3d2fbd687f1e3a55d43101138a5b7f2ca56d97/kafka_python-2.3.2.tar.gz", hash = "sha256:2d2469bcabc2551be7eaf7fb512e1241484d358800f2665b90e7e24fea84259d", size = 357589, upload-time = "2026-06-03T22:46:49.022Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/78/83/6f79b5e03f7d259cba60d3e48c97f7b76a86d20486a515e8ffadea97434e/kafka_python-2.3.1-py2.py3-none-any.whl", hash = "sha256:4908865da9e57f0f966a83788c71cb0ae91c33451a26ab6e6984a00b15c6ed71", size = 326065, upload-time = "2026-04-09T21:10:24.685Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/db/cfe23cfacc9aabeef59e349aa6c2738d195df1d56ccf8c31362abdd68ddb/kafka_python-2.3.2-py2.py3-none-any.whl", hash = "sha256:e8a5e6f2c4ce13a8041669337038d5125e0e09e6d6f0911902ae5939e5b9595e", size = 326623, upload-time = "2026-06-03T22:46:47.417Z" },
 ]
 
 [[package]]
@@ -668,15 +668,15 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "2.61.0"
+version = "2.61.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/52/4d/3c66e6045bd2071256b6b6fdcb0cc02b86ce54b2acc2ceac79af8e0efbb5/sentry_sdk-2.61.0.tar.gz", hash = "sha256:1ca9b4bb777eb5be67004edab7eb894f21c6301f1d05ed64966719ad5d1764ce", size = 458510, upload-time = "2026-05-28T09:40:28.917Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/3b/4bc6b348bbd331daa14d4babe9f2b99bc854f4da41560eefb9488d78481d/sentry_sdk-2.61.1.tar.gz", hash = "sha256:9c6adccb3feefa9ba032c8d295ca477575c2f11896046a2b0ad686c47c4af555", size = 459429, upload-time = "2026-06-01T07:24:18.875Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/21/5a/9794736d5802689c1a48862e6afe6b7f3e86cc37c15d4a84bc0143877dc1/sentry_sdk-2.61.0-py3-none-any.whl", hash = "sha256:ec4d30273909cb1d198e03208b16ee70e2bc5d90a16fd9f1fb2fc6a72e1f03dc", size = 483111, upload-time = "2026-05-28T09:40:27.027Z" },
+    { url = "https://files.pythonhosted.org/packages/df/54/c9218db183846e08efaf68534889ef42e499dde432778881104a42f7071b/sentry_sdk-2.61.1-py3-none-any.whl", hash = "sha256:fa36eaf4b8ad708f718500d4bdcc1532637526a22beb874d88cbc0a46458b5ae", size = 483735, upload-time = "2026-06-01T07:24:17.027Z" },
 ]
 
 [package.optional-dependencies]
@@ -686,14 +686,14 @@ django = [
 
 [[package]]
 name = "servestatic"
-version = "4.3.0"
+version = "4.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/43/67/b295f796111b5b8cc7ff6547e58e5f7c33607ac9f3c41d9f515dbf38b326/servestatic-4.3.0.tar.gz", hash = "sha256:76ccf85cf5acc818348cff3fbcf7343ef182fd90aab6d6a18f038401b609f411", size = 33047, upload-time = "2026-04-10T01:59:06.205Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/93/07/c1d5fe373c4f1d86a7a976f5a407daa9335cd8f9b9682b1c25d5f2386207/servestatic-4.3.1.tar.gz", hash = "sha256:e28bdd4fbe13a28374754c2554cec4e1d6c8af4dc65d604b71ef8860a16408fa", size = 32810, upload-time = "2026-06-07T06:17:05.512Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/5e/aa8301dd20c665d3b9255a54face0778ab4ac0c855a32f1e19334f7b5798/servestatic-4.3.0-py3-none-any.whl", hash = "sha256:a1df56fc21175ba826d442310239b4dd65f65b610dfabfa6be4e1101366ca46e", size = 40183, upload-time = "2026-04-10T01:59:05.112Z" },
+    { url = "https://files.pythonhosted.org/packages/50/2f/c1a7d5b949b55bda4a55e49b040f385bc098d307bd4bdeb498c550219473/servestatic-4.3.1-py3-none-any.whl", hash = "sha256:9792a4fe2de1df67e1e87aa4efb3c8d28bb3ebd64128a1a10162db84d87c6b36", size = 39921, upload-time = "2026-06-07T06:17:04.347Z" },
 ]
 
 [package.optional-dependencies]
