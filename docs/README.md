@@ -1,4 +1,4 @@
-﻿# DEALData Documentation
+# DEALData Documentation
 
 This directory contains operator, contributor, and community documentation for DEALData.
 

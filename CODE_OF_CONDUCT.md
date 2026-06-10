@@ -1,4 +1,4 @@
-﻿# Code Of Conduct
+# Code Of Conduct
 
 DEALData uses a pragmatic professional conduct policy.
 

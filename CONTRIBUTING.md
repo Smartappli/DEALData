@@ -1,4 +1,4 @@
-﻿# Contributing To DEALData
+# Contributing To DEALData
 
 DEALData welcomes practical contributions that make the data services easier to run, verify, extend, and operate with DEALIoT and DealHost.
 

@@ -1,11 +1,11 @@
-﻿# Support
+# Support
 
 This repository is an open implementation reference for DEAL data services. Support is best-effort unless a separate DealHost or project agreement exists.
 
 ## Where To Ask
 
 | Need | Channel |
-|---|---|
+| --- | --- |
 | Usage question or evaluation blocker | Open a GitHub Q&A discussion |
 | Product idea or integration proposal before it is scoped | Open a GitHub Ideas discussion |
 | Contributor scoping, first issue help, or validation guidance | Open a Contributor help discussion |

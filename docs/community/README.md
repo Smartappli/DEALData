@@ -1,4 +1,4 @@
-﻿# DEALData Community Guide
+# DEALData Community Guide
 
 This directory records the public contribution and support model for DEALData.
 
@@ -12,7 +12,7 @@ This directory records the public contribution and support model for DEALData.
 ## Contribution Tracks
 
 | Track | Examples | Validation |
-|---|---|---|
+| --- | --- | --- |
 | Core data service | Projects, members, observed objects, experiments | Django checks and layer tests |
 | GPS data service | GPS fixes, WildFi `raw.gps`, latest state | GPS layer checks and ingestion tests |
 | Sensor data service | Sensor events, WildFi `raw.sensor`, type inference | Sensor layer checks and ingestion tests |
