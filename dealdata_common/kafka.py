@@ -32,7 +32,7 @@ def decode_json(value: bytes) -> dict[str, Any] | None:
     """Decode a Kafka message value into a JSON object payload."""
     try:
         decoded = json.loads(value.decode("utf-8"))
-    except UnicodeDecodeError, json.JSONDecodeError:
+    except (UnicodeDecodeError, json.JSONDecodeError):
         return None
     return decoded if isinstance(decoded, dict) else None
 
