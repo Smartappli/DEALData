@@ -35,7 +35,7 @@ def parse_positive_int(
     value: str | None, field_name: str, default: int, maximum: int
 ) -> int:
     """Parse a non-negative integer query value and cap it at a maximum."""
-    if value in (None, ""):
+    if value is None or value == "":
         return default
     try:
         parsed = int(value)

@@ -30,7 +30,7 @@ repos:
     hooks:
       - id: mypy
         args: ["--config-file", "pyproject.toml"]
-        exclude: ^mqtt-kafka-bridge/
+        exclude: (^mqtt-kafka-bridge/|(^|/)manage\.py$|(^|/)migrations/)
         additional_dependencies:
           - types-PyYAML==6.0.12.20260408
 

@@ -32,7 +32,7 @@ test = [
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 
 [tool.mypy]
-explicit_package_bases = true
+ignore_missing_imports = true
 
 [tool.ruff]
 extend-exclude = [

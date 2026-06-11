@@ -31,26 +31,26 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-    # Ensure a compatible version of dotnet is installed.
-    # The [Microsoft Security Code Analysis CLI](https://aka.ms/mscadocs) is built with dotnet v3.1.201.
-    # A version greater than or equal to v3.1.201 of dotnet must be installed on the agent in order to run this action.
-    # GitHub hosted runners already have a compatible version of dotnet installed and this step may be skipped.
-    # For self-hosted runners, ensure dotnet version 3.1.201 or later is installed by including this action:
-    # - name: Install .NET
-    #   uses: actions/setup-dotnet@v4
-    #   with:
-    #     dotnet-version: '3.1.x'
+      # Ensure a compatible version of dotnet is installed.
+      # The [Microsoft Security Code Analysis CLI](https://aka.ms/mscadocs) is built with dotnet v3.1.201.
+      # A version greater than or equal to v3.1.201 of dotnet must be installed on the agent in order to run this action.
+      # GitHub hosted runners already have a compatible version of dotnet installed and this step may be skipped.
+      # For self-hosted runners, ensure dotnet version 3.1.201 or later is installed by including this action:
+      # - name: Install .NET
+      #   uses: actions/setup-dotnet@v4
+      #   with:
+      #     dotnet-version: '3.1.x'
 
       # Run open source static analysis tools
-    - name: Run OSSAR
-      uses: github/ossar-action@4e96c4f6e591eb4b991abfd459e40b136a317aea # v2.0.0
-      id: ossar
+      - name: Run OSSAR
+        uses: github/ossar-action@4e96c4f6e591eb4b991abfd459e40b136a317aea # v2.0.0
+        id: ossar
 
       # Upload results to the Security tab
-    - name: Upload OSSAR results
-      uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
-      with:
-        sarif_file: ${{ steps.ossar.outputs.sarifFile }}
+      - name: Upload OSSAR results
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
+        with:
+          sarif_file: ${{ steps.ossar.outputs.sarifFile }}

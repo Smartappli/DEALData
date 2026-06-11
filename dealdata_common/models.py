@@ -43,7 +43,7 @@ def parse_optional_event_datetime(
     field_name: str,
 ) -> datetime | None:
     """Parse an optional ISO datetime from a DEALIoT event."""
-    if value in (None, ""):
+    if value is None or value == "":
         return None
     return parse_event_datetime(value, field_name)
 
@@ -66,9 +66,9 @@ def event_float(
     """Extract a float from top-level DEALIoT fields or decoded payload."""
     for field_name in field_names:
         value = event.get(field_name)
-        if value in (None, ""):
+        if value is None or value == "":
             value = payload.get(field_name)
-        if value not in (None, ""):
+        if value is not None and value != "":
             return float(value)
     if required:
         names = ", ".join(field_names)
