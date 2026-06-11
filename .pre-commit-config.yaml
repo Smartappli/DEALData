@@ -25,7 +25,7 @@ repos:
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff 0.15.x rewrites tuple except clauses to invalid syntax in this project.
-    rev: v0.14.9
+    rev: v0.15.16
     hooks:
       - id: ruff-check
         args: ["--fix", "--config", "pyproject.toml"]
