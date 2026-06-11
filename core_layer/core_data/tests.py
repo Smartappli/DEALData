@@ -127,8 +127,7 @@ def test_experiment_links_string_representations() -> None:
 
     CHECK.assertEqual(str(experiment), str(experiment.experiment_id))
     CHECK.assertEqual(
-        str(link),
-        f"{experiment.experiment_id} - {observed_object.observed_object_id}"
+        str(link), f"{experiment.experiment_id} - {observed_object.observed_object_id}"
     )
 
 

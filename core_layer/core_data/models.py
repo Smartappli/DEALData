@@ -173,12 +173,12 @@ class ProjectMembership(models.Model):
                 raise ValidationError(message)
 
     def save(
-            self,
-            *args,
-            force_insert=False,
-            force_update=False,
-            using=None,
-            update_fields=None,
+        self,
+        *args,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
     ):
         """Validate the model before saving it."""
         self.full_clean()

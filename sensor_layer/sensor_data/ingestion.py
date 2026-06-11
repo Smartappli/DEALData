@@ -11,7 +11,7 @@ from .serializers import WildFiSensorIngestSerializer
 
 
 def find_existing_sensor_event(
-        event: WildFiDecodedSensorEvent,
+    event: WildFiDecodedSensorEvent,
 ) -> WildFiDecodedSensorEvent | None:
     """Return an already-ingested event matching idempotency keys."""
     if event.event_id:
@@ -30,9 +30,9 @@ def find_existing_sensor_event(
 
 
 def serialize_sensor_ingest_event(
-        event: WildFiDecodedSensorEvent,
-        *,
-        duplicate: bool,
+    event: WildFiDecodedSensorEvent,
+    *,
+    duplicate: bool,
 ) -> dict[str, object]:
     """Return the compact ingestion response for a sensor event."""
     return {
@@ -48,7 +48,7 @@ def serialize_sensor_ingest_event(
 
 
 def ingest_dealiot_sensor_event(
-        payload: dict[str, object],
+    payload: dict[str, object],
 ) -> tuple[dict[str, object], int]:
     """Persist one decoded DEALIoT `raw.sensor` event idempotently."""
     serializer = WildFiSensorIngestSerializer(data=payload)

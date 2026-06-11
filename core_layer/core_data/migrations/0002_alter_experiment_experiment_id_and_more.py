@@ -5,35 +5,59 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core_data', '0001_initial'),
+        ("core_data", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='experiment',
-            name='experiment_id',
-            field=models.UUIDField(default=core_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="experiment",
+            name="experiment_id",
+            field=models.UUIDField(
+                default=core_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
         migrations.AlterField(
-            model_name='experimentobservedobject',
-            name='experiment_observed_object_id',
-            field=models.UUIDField(default=core_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="experimentobservedobject",
+            name="experiment_observed_object_id",
+            field=models.UUIDField(
+                default=core_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
         migrations.AlterField(
-            model_name='observedobject',
-            name='observed_object_id',
-            field=models.UUIDField(default=core_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="observedobject",
+            name="observed_object_id",
+            field=models.UUIDField(
+                default=core_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='project_id',
-            field=models.UUIDField(default=core_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="project",
+            name="project_id",
+            field=models.UUIDField(
+                default=core_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
         migrations.AlterField(
-            model_name='projectmembership',
-            name='project_membership_id',
-            field=models.UUIDField(default=core_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="projectmembership",
+            name="project_membership_id",
+            field=models.UUIDField(
+                default=core_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
     ]

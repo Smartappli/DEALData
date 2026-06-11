@@ -4,33 +4,54 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('gps_data', '0001_initial'),
+        ("gps_data", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='wildfigpsfix',
-            name='event_id',
-            field=models.CharField(blank=True, db_index=True, help_text='Optional upstream DEALIoT/Kafka event identifier.', max_length=128),
+            model_name="wildfigpsfix",
+            name="event_id",
+            field=models.CharField(
+                blank=True,
+                db_index=True,
+                help_text="Optional upstream DEALIoT/Kafka event identifier.",
+                max_length=128,
+            ),
         ),
         migrations.AddField(
-            model_name='wildfigpsfix',
-            name='message_key',
-            field=models.CharField(blank=True, help_text='Optional Kafka or MQTT key used by DEALIoT.', max_length=255),
+            model_name="wildfigpsfix",
+            name="message_key",
+            field=models.CharField(
+                blank=True,
+                help_text="Optional Kafka or MQTT key used by DEALIoT.",
+                max_length=255,
+            ),
         ),
         migrations.AddField(
-            model_name='wildfigpsfix',
-            name='payload_hash',
-            field=models.CharField(blank=True, db_index=True, help_text='Stable SHA-256 hash used for idempotent ingestion.', max_length=64),
+            model_name="wildfigpsfix",
+            name="payload_hash",
+            field=models.CharField(
+                blank=True,
+                db_index=True,
+                help_text="Stable SHA-256 hash used for idempotent ingestion.",
+                max_length=64,
+            ),
         ),
         migrations.AddConstraint(
-            model_name='wildfigpsfix',
-            constraint=models.UniqueConstraint(condition=models.Q(('event_id', ''), _negated=True), fields=('source', 'event_id'), name='uq_wildfi_gps_source_event_id'),
+            model_name="wildfigpsfix",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("event_id", ""), _negated=True),
+                fields=("source", "event_id"),
+                name="uq_wildfi_gps_source_event_id",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='wildfigpsfix',
-            constraint=models.UniqueConstraint(condition=models.Q(('payload_hash', ''), _negated=True), fields=('source', 'payload_hash'), name='uq_wildfi_gps_source_payload_hash'),
+            model_name="wildfigpsfix",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("payload_hash", ""), _negated=True),
+                fields=("source", "payload_hash"),
+                name="uq_wildfi_gps_source_payload_hash",
+            ),
         ),
     ]

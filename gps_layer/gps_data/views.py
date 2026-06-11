@@ -61,9 +61,7 @@ def metrics(request):
     """Return minimal Prometheus metrics for the GPS service."""
     del request
     total_events = WildFiGPSFix.objects.count()
-    total_devices = (
-        WildFiGPSFix.objects.values("wildfi_device_id").distinct().count()
-    )
+    total_devices = WildFiGPSFix.objects.values("wildfi_device_id").distinct().count()
     body = "\n".join(
         [
             "# HELP dealdata_gps_wildfi_events_total Stored WildFi GPS events.",

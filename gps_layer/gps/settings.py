@@ -10,6 +10,9 @@ sys.path.insert(0, str(BASE_DIR.parent))
 from dealdata_common.django_settings import configure_service_settings
 
 configure_service_settings(
-    globals(), base_dir=BASE_DIR, project_module="gps",
-    app_config="gps_data.apps.GpsConfig", database_name="dealdata_gps",
+    globals(),
+    base_dir=BASE_DIR,
+    project_module="gps",
+    app_config="gps_data.apps.GpsConfig",
+    database_name="dealdata_gps",
 )

@@ -215,17 +215,11 @@ class WildFiGPSFix(WildFiEventBase):
 
         constraints = [
             CheckConstraint(
-                condition=(
-                    Q(latitude__gte=-90.0)
-                    & Q(latitude__lte=90.0)
-                ),
+                condition=(Q(latitude__gte=-90.0) & Q(latitude__lte=90.0)),
                 name="ck_wildfi_gps_latitude_range",
             ),
             CheckConstraint(
-                condition=(
-                    Q(longitude__gte=-180.0)
-                    & Q(longitude__lte=180.0)
-                ),
+                condition=(Q(longitude__gte=-180.0) & Q(longitude__lte=180.0)),
                 name="ck_wildfi_gps_longitude_range",
             ),
             UniqueConstraint(
@@ -246,10 +240,10 @@ class WildFiGPSFix(WildFiEventBase):
 
     @classmethod
     def from_dealiot_event(
-            cls,
-            event: dict[str, Any],
-            *,
-            topic: str = "raw.gps",
+        cls,
+        event: dict[str, Any],
+        *,
+        topic: str = "raw.gps",
     ) -> "WildFiGPSFix":
         """Build a GPS fix from the decoded DEALIoT `raw.gps` contract."""
         payload = _payload_dict(event.get("payload"))
@@ -317,12 +311,12 @@ class WildFiGPSFix(WildFiEventBase):
         }
 
     def save(
-            self,
-            *args,
-            force_insert=False,
-            force_update=False,
-            using=None,
-            update_fields=None,
+        self,
+        *args,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
     ):
         """Ensure directly-created events still have an idempotency hash."""
         if not self.payload_hash:
@@ -365,9 +359,7 @@ class ProcessedGPSDataObservedObject(models.Model):
         verbose_name=OBSERVED_OBJECT_ID_VERBOSE_NAME,
         help_text=OBSERVED_OBJECT_ID_HELP_TEXT,
     )
-    processed_gps_data_observed_object_acquisition_time = (
-        models.DateTimeField()
-    )
+    processed_gps_data_observed_object_acquisition_time = models.DateTimeField()
     processed_gps_data_observed_object_longitude = models.FloatField()
     processed_gps_data_observed_object_latitude = models.FloatField()
     processed_gps_data_observed_object_geom = JSONField(
@@ -376,17 +368,15 @@ class ProcessedGPSDataObservedObject(models.Model):
         verbose_name="Processed GPS Geometry",
         help_text="GeoJSON point in EPSG:4326.",
     )
-    processed_gps_data_observed_object_insert_timestamp = (
-        models.DateTimeField()
-    )
+    processed_gps_data_observed_object_insert_timestamp = models.DateTimeField()
 
     def save(
-            self,
-            *args,
-            force_insert=False,
-            force_update=False,
-            using=None,
-            update_fields=None,
+        self,
+        *args,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
     ):
         """Populate the geometry from longitude and latitude before saving."""
         lon = self.processed_gps_data_observed_object_longitude

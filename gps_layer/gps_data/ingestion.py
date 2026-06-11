@@ -28,9 +28,9 @@ def find_existing_gps_event(event: WildFiGPSFix) -> WildFiGPSFix | None:
 
 
 def serialize_gps_ingest_event(
-        event: WildFiGPSFix,
-        *,
-        duplicate: bool,
+    event: WildFiGPSFix,
+    *,
+    duplicate: bool,
 ) -> dict[str, object]:
     """Return the compact ingestion response for a GPS event."""
     return {
@@ -45,7 +45,7 @@ def serialize_gps_ingest_event(
 
 
 def ingest_dealiot_gps_event(
-        payload: dict[str, object],
+    payload: dict[str, object],
 ) -> tuple[dict[str, object], int]:
     """Persist one decoded DEALIoT `raw.gps` event idempotently."""
     serializer = WildFiGPSIngestSerializer(data=payload)

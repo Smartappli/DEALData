@@ -13,9 +13,7 @@ from django.utils.dateparse import parse_datetime
 
 
 OBSERVED_OBJECT_ID_VERBOSE_NAME = "Observed Object ID"
-OBSERVED_OBJECT_ID_HELP_TEXT = (
-    "UUID of the observed object managed by the core layer."
-)
+OBSERVED_OBJECT_ID_HELP_TEXT = "UUID of the observed object managed by the core layer."
 
 
 def uuid7_value() -> UUID:
@@ -33,9 +31,7 @@ def parse_event_datetime(value: Any, field_name: str) -> datetime:
         parsed = None
 
     if parsed is None:
-        message = (
-            f"DEALIoT event field '{field_name}' must be an ISO datetime."
-        )
+        message = f"DEALIoT event field '{field_name}' must be an ISO datetime."
         raise ValueError(message)
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
@@ -43,8 +39,8 @@ def parse_event_datetime(value: Any, field_name: str) -> datetime:
 
 
 def parse_optional_event_datetime(
-        value: Any,
-        field_name: str,
+    value: Any,
+    field_name: str,
 ) -> datetime | None:
     """Parse an optional ISO datetime from a DEALIoT event."""
     if value in (None, ""):
@@ -62,10 +58,10 @@ def payload_dict(value: Any) -> dict[str, Any]:
 
 
 def event_float(
-        event: dict[str, Any],
-        payload: dict[str, Any],
-        *field_names: str,
-        required: bool = False,
+    event: dict[str, Any],
+    payload: dict[str, Any],
+    *field_names: str,
+    required: bool = False,
 ) -> float | None:
     """Extract a float from top-level DEALIoT fields or decoded payload."""
     for field_name in field_names:

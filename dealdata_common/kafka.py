@@ -32,7 +32,7 @@ def decode_json(value: bytes) -> dict[str, Any] | None:
     """Decode a Kafka message value into a JSON object payload."""
     try:
         decoded = json.loads(value.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except UnicodeDecodeError, json.JSONDecodeError:
         return None
     return decoded if isinstance(decoded, dict) else None
 
@@ -203,11 +203,13 @@ class DealIotKafkaCommand(BaseCommand):
         )
 
 
-def build_dealiot_kafka_command(*,
-                                service_key: str,
-                                event_label: str,
-                                model_path: str,
-                                ingest_event: KafkaIngestEvent):
+def build_dealiot_kafka_command(
+    *,
+    service_key: str,
+    event_label: str,
+    model_path: str,
+    ingest_event: KafkaIngestEvent,
+):
     """Create a Django management command for one DEALIoT event stream."""
     service_env = service_key.upper()
     help_text = f"Consume DEALIoT Kafka raw.{service_key} events into {model_path}."

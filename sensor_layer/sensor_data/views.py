@@ -62,9 +62,7 @@ def metrics(request):
     del request
     total_events = WildFiDecodedSensorEvent.objects.count()
     total_devices = (
-        WildFiDecodedSensorEvent.objects.values("wildfi_device_id")
-        .distinct()
-        .count()
+        WildFiDecodedSensorEvent.objects.values("wildfi_device_id").distinct().count()
     )
     body = "\n".join(
         [

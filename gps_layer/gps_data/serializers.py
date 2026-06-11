@@ -39,8 +39,7 @@ class WildFiGPSIngestSerializer(WildFiEventIngestSerializer):
             key in attrs or key in payload for key in ("latitude", "lat")
         )
         has_longitude = any(
-            key in attrs or key in payload
-            for key in ("longitude", "lon", "lng")
+            key in attrs or key in payload for key in ("longitude", "lon", "lng")
         )
         if not has_latitude:
             raise serializers.ValidationError(

@@ -40,7 +40,7 @@ def send_email(subject, email, message):
     email_message = EmailMessage(subject, message, email_from, recipient_list)
     try:
         email_message.send()
-    except (OSError, SMTPException):
+    except OSError, SMTPException:
         LOGGER.exception("Failed to send email.")
 
 
@@ -75,10 +75,7 @@ def send_verification_email(email, token):
     verification_url = get_absolute_url(
         reverse("verify-email", kwargs={"token": token}),
     )
-    message = (
-        "Hi,\n\nPlease verify your email using this link: "
-        f"{verification_url}"
-    )
+    message = f"Hi,\n\nPlease verify your email using this link: {verification_url}"
     send_email(subject, email, message)
 
 

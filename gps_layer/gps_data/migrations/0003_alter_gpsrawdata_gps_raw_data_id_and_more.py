@@ -5,35 +5,59 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('gps_data', '0002_wildfigpsfix_event_id_wildfigpsfix_message_key_and_more'),
+        ("gps_data", "0002_wildfigpsfix_event_id_wildfigpsfix_message_key_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='gpsrawdata',
-            name='gps_raw_data_id',
-            field=models.UUIDField(default=gps_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="gpsrawdata",
+            name="gps_raw_data_id",
+            field=models.UUIDField(
+                default=gps_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
         migrations.AlterField(
-            model_name='gpssensor',
-            name='gps_sensors_id',
-            field=models.UUIDField(default=gps_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="gpssensor",
+            name="gps_sensors_id",
+            field=models.UUIDField(
+                default=gps_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
         migrations.AlterField(
-            model_name='observedobjectgpssensor',
-            name='observed_object_gps_sensors_id',
-            field=models.UUIDField(default=gps_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="observedobjectgpssensor",
+            name="observed_object_gps_sensors_id",
+            field=models.UUIDField(
+                default=gps_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
         migrations.AlterField(
-            model_name='processedgpsdataobservedobject',
-            name='processed_gps_data_observed_object_id',
-            field=models.UUIDField(default=gps_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="processedgpsdataobservedobject",
+            name="processed_gps_data_observed_object_id",
+            field=models.UUIDField(
+                default=gps_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
         migrations.AlterField(
-            model_name='wildfigpsfix',
-            name='wildfi_gps_fix_id',
-            field=models.UUIDField(default=gps_data.models.uuid7_value, editable=False, primary_key=True, serialize=False),
+            model_name="wildfigpsfix",
+            name="wildfi_gps_fix_id",
+            field=models.UUIDField(
+                default=gps_data.models.uuid7_value,
+                editable=False,
+                primary_key=True,
+                serialize=False,
+            ),
         ),
     ]

@@ -102,27 +102,17 @@ TEMPLATES = [
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": (
-            "django.contrib.auth.password_validation."
-            "UserAttributeSimilarityValidator"
+            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
         ),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation."
-            "MinimumLengthValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.MinimumLengthValidator"),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation."
-            "CommonPasswordValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.CommonPasswordValidator"),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation."
-            "NumericPasswordValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.NumericPasswordValidator"),
     },
 ]
 
@@ -141,13 +131,13 @@ REST_FRAMEWORK = {
 
 
 def configure_service_settings(
-        namespace: MutableMapping[str, Any],
-        *,
-        base_dir: Path,
-        project_module: str,
-        app_config: str,
-        database_name: str,
-        include_wsgi: bool = True,
+    namespace: MutableMapping[str, Any],
+    *,
+    base_dir: Path,
+    project_module: str,
+    app_config: str,
+    database_name: str,
+    include_wsgi: bool = True,
 ) -> None:
     """Populate the standard settings shared by all DEALData services."""
     debug = env_bool("DJANGO_DEBUG", default=True)
