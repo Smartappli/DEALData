@@ -11,7 +11,7 @@ dependencies = [
     "djangorestframework-simplejwt==5.5.1",
     "djangorestframework-stubs>=3.17.0",
     "granian==2.7.6",
-    "kafka-python==2.3.2",
+    "kafka-python==3.0.0",
     "psycopg[binary,pool]==3.3.4",
     "python-dotenv==1.2.2",
     "sentry-sdk[django]==2.62.0",
