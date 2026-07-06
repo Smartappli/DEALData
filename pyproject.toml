@@ -10,7 +10,7 @@ dependencies = [
     "djangorestframework==3.17.1",
     "djangorestframework-simplejwt==5.5.1",
     "djangorestframework-stubs>=3.17.0",
-    "granian==2.7.6",
+    "granian==2.7.9",
     "kafka-python==3.0.2",
     "psycopg[binary,pool]==3.3.4",
     "python-dotenv==1.2.2",
