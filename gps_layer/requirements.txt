@@ -13,7 +13,7 @@ djangorestframework==3.17.1
 djangorestframework-simplejwt==5.5.1
 
 # --- ASGI server (Django en ASGI) ---
-granian==2.7.8
+granian==2.7.9
 kafka-python==3.0.7
 
 # --- Postgres driver ---
