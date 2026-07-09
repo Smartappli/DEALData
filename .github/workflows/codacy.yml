@@ -108,30 +108,30 @@ jobs:
 
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file 1
-        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: sarif-results/results.github.01.sarif
 
       - name: Upload SARIF results file 2
         if: ${{ hashFiles('sarif-results/results.github.02.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: sarif-results/results.github.02.sarif
 
       - name: Upload SARIF results file 3
         if: ${{ hashFiles('sarif-results/results.github.03.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: sarif-results/results.github.03.sarif
 
       - name: Upload SARIF results file 4
         if: ${{ hashFiles('sarif-results/results.github.04.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: sarif-results/results.github.04.sarif
 
       - name: Upload SARIF results file 5
         if: ${{ hashFiles('sarif-results/results.github.05.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: sarif-results/results.github.05.sarif
