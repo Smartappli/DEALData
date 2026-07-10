@@ -14,7 +14,7 @@ djangorestframework-simplejwt==5.5.1
 
 # --- ASGI server (Django en ASGI) ---
 granian==2.7.9
-kafka-python==3.0.7
+kafka-python==3.0.8
 
 # --- Postgres driver ---
 psycopg[binary,pool]==3.3.4
