@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError, transaction
 from rest_framework import status
+
+from dealdata_common.ingestion import persist_idempotent_event
 
 from .models import WildFiGPSFix
 from .serializers import WildFiGPSIngestSerializer
@@ -52,27 +52,15 @@ def ingest_dealiot_gps_event(
     if not serializer.is_valid():
         return {"detail": serializer.errors}, status.HTTP_400_BAD_REQUEST
 
-    event = WildFiGPSFix.from_dealiot_event(serializer.validated_data)
-    existing = find_existing_gps_event(event)
-    if existing:
-        return (
-            serialize_gps_ingest_event(existing, duplicate=True),
-            status.HTTP_200_OK,
-        )
-
     try:
-        with transaction.atomic():
-            event.full_clean()
-            event.save()
-    except DjangoValidationError as exc:
-        return {"detail": exc.message_dict}, status.HTTP_400_BAD_REQUEST
-    except IntegrityError:
-        existing = find_existing_gps_event(event)
-        if existing:
-            return (
-                serialize_gps_ingest_event(existing, duplicate=True),
-                status.HTTP_200_OK,
-            )
-        raise
-
-    return serialize_gps_ingest_event(event, duplicate=False), status.HTTP_201_CREATED
+        event = WildFiGPSFix.from_dealiot_event(serializer.validated_data)
+    except ValueError as exc:
+        return {"detail": str(exc)}, status.HTTP_400_BAD_REQUEST
+    return persist_idempotent_event(
+        event,
+        find_existing=find_existing_gps_event,
+        serialize=lambda item, duplicate: serialize_gps_ingest_event(
+            item,
+            duplicate=duplicate,
+        ),
+    )

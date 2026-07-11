@@ -15,4 +15,5 @@ configure_service_settings(
     project_module="gps",
     app_config="gps_data.apps.GpsConfig",
     database_name="dealdata_gps",
+    require_ingest_token=True,
 )

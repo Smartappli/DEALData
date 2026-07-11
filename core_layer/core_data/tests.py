@@ -9,6 +9,7 @@ from django.db import DatabaseError
 from django.test import Client
 import pytest
 
+from dealdata_common.django_settings import env_float, env_int
 from core_data.models import (
     Experiment,
     ExperimentObservedObject,
@@ -20,6 +21,53 @@ from core_data.models import (
 )
 
 CHECK = TestCase()
+
+
+def test_env_int_returns_default_when_unset(monkeypatch) -> None:
+    """Optional numeric settings use their documented default value."""
+    monkeypatch.delenv("DEALDATA_TEST_INTEGER", raising=False)
+
+    CHECK.assertEqual(
+        env_int("DEALDATA_TEST_INTEGER", default=60, minimum=0),
+        60,
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [("not-an-integer", "integer"), ("-1", "greater than or equal")],
+)
+def test_env_int_rejects_invalid_values(monkeypatch, value: str, message: str) -> None:
+    """Integer settings fail with an actionable configuration error."""
+    monkeypatch.setenv("DEALDATA_TEST_INTEGER", value)
+
+    with pytest.raises(RuntimeError, match=message):
+        env_int("DEALDATA_TEST_INTEGER", default=60, minimum=0)
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("NaN", "finite"),
+        ("-0.1", "greater than or equal"),
+        ("1.1", "less than or equal"),
+    ],
+)
+def test_env_float_rejects_invalid_sample_rates(
+    monkeypatch,
+    value: str,
+    message: str,
+) -> None:
+    """Float settings reject non-finite and out-of-range values."""
+    monkeypatch.setenv("DEALDATA_TEST_FLOAT", value)
+
+    with pytest.raises(RuntimeError, match=message):
+        env_float(
+            "DEALDATA_TEST_FLOAT",
+            default=0.0,
+            minimum=0.0,
+            maximum=1.0,
+        )
 
 
 def create_test_user(username: str):

@@ -72,6 +72,15 @@ multi-couches n'est pas configure explicitement.
 Depuis la racine du depot, avec les dependances installees dans `.venv`:
 
 ```powershell
+.\scripts\validate.ps1
+# Ou une seule couche : .\scripts\validate.ps1 -Layer gps
+```
+
+La commande execute la compilation, les verifications Django, la detection de
+migrations manquantes et les tests de la ou des couches choisies. Les commandes
+equivalentes sont:
+
+```powershell
 .\.venv\Scripts\python.exe -m compileall -q core_layer gps_layer sensor_layer
 cd core_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=core.settings -q
 cd ..\gps_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=gps.settings -q
@@ -243,6 +252,10 @@ Variables obligatoires en production:
   `SENSOR_DATABASE_PASSWORD`.
 - `DEALDATA_INGEST_TOKEN` pour les endpoints d'ingestion GPS et Sensor.
 
+Le demarrage d'un conteneur de production execute `python manage.py check
+--deploy` avant les migrations. Il exige HTTPS, HSTS et un jeton d'ingestion
+pour les services GPS et Sensor.
+
 Variables optionnelles ou avec valeur par defaut:
 
 - `CORE_DATABASE_NAME`, `GPS_DATABASE_NAME`, `SENSOR_DATABASE_NAME`.
@@ -253,8 +266,16 @@ Variables optionnelles ou avec valeur par defaut:
   `DEALDATA_SENSOR_KAFKA_TOPIC`, `DEALDATA_SENSOR_KAFKA_GROUP_ID`.
 - `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_TRACES_SAMPLE_RATE`,
   `SENTRY_SEND_DEFAULT_PII`.
+- `DJANGO_SECURE_SSL_REDIRECT` (defaut `true`),
+  `DJANGO_SECURE_HSTS_SECONDS` (defaut `31536000`) et
+  `DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS` et
+  `DJANGO_SECURE_HSTS_PRELOAD` (defaut `true`).
 
 En production, `DJANGO_DEBUG=false` est impose par `docker-compose.prod.yml`.
+Les valeurs numeriques invalides sont rejetées au demarrage avec un message
+explicite : `DATABASE_CONN_MAX_AGE` et `DJANGO_SECURE_HSTS_SECONDS` doivent
+etre des entiers non negatifs, et `SENTRY_TRACES_SAMPLE_RATE` doit etre compris
+entre `0` et `1`.
 
 ## Notes d'exploitation
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC
+from secrets import compare_digest
 from typing import Callable
 
 from django.conf import settings
@@ -23,7 +24,8 @@ def ingestion_token_error(request) -> Response | None:
     token = getattr(settings, "DEALDATA_INGEST_TOKEN", "")
     if not token:
         return None
-    if request.headers.get("X-DEALDATA-INGEST-TOKEN") == token:
+    supplied_token = request.headers.get("X-DEALDATA-INGEST-TOKEN", "")
+    if compare_digest(supplied_token, token):
         return None
     return Response(
         {"detail": "Invalid ingestion token."},
@@ -77,6 +79,9 @@ def parse_list_params(query_params) -> tuple[int, int, object, object]:
     )
     started_at = parse_datetime_filter(query_params.get("from"), "from")
     ended_at = parse_datetime_filter(query_params.get("to"), "to")
+    if started_at and ended_at and started_at > ended_at:
+        message = "Query parameter 'from' must be earlier than or equal to 'to'."
+        raise QueryParameterError(message)
     return limit, offset, started_at, ended_at
 
 

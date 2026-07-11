@@ -2,6 +2,8 @@
 
 from rest_framework import serializers
 
+MAX_INGEST_BATCH_SIZE = 1000
+
 
 class WildFiEventIngestSerializer(serializers.Serializer):
     """Common DEALIoT event envelope fields."""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from importlib import import_module
+import math
 import os
 from pathlib import Path
 from typing import Any, MutableMapping
@@ -26,6 +27,55 @@ def env_list(name: str, default=None) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def env_int(
+    name: str,
+    default: int,
+    *,
+    minimum: int | None = None,
+) -> int:
+    """Read a bounded integer from the environment."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        message = f"{name} must be an integer."
+        raise RuntimeError(message) from exc
+    if minimum is not None and parsed < minimum:
+        message = f"{name} must be greater than or equal to {minimum}."
+        raise RuntimeError(message)
+    return parsed
+
+
+def env_float(
+    name: str,
+    default: float,
+    *,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> float:
+    """Read a bounded finite float from the environment."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        message = f"{name} must be a number."
+        raise RuntimeError(message) from exc
+    if not math.isfinite(parsed):
+        message = f"{name} must be finite."
+        raise RuntimeError(message)
+    if minimum is not None and parsed < minimum:
+        message = f"{name} must be greater than or equal to {minimum}."
+        raise RuntimeError(message)
+    if maximum is not None and parsed > maximum:
+        message = f"{name} must be less than or equal to {maximum}."
+        raise RuntimeError(message)
+    return parsed
+
+
 def database_config(base_dir: Path, default_name: str) -> dict[str, object]:
     """Return a SQLite development DB or PostgreSQL production DB."""
     if env_bool("DATABASE_USE_POSTGRES") or os.environ.get("DATABASE_HOST"):
@@ -36,7 +86,11 @@ def database_config(base_dir: Path, default_name: str) -> dict[str, object]:
             "PASSWORD": os.environ.get("DATABASE_PASSWORD", ""),
             "HOST": os.environ.get("DATABASE_HOST", "localhost"),
             "PORT": os.environ.get("DATABASE_PORT", "5432"),
-            "CONN_MAX_AGE": int(os.environ.get("DATABASE_CONN_MAX_AGE", "60")),
+            "CONN_MAX_AGE": env_int(
+                "DATABASE_CONN_MAX_AGE",
+                default=60,
+                minimum=0,
+            ),
         }
     return {
         "ENGINE": "django.db.backends.sqlite3",
@@ -138,8 +192,10 @@ def configure_service_settings(
     app_config: str,
     database_name: str,
     include_wsgi: bool = True,
+    require_ingest_token: bool = False,
 ) -> None:
     """Populate the standard settings shared by all DEALData services."""
+    import_module("dealdata_common.deployment")
     debug = env_bool("DJANGO_DEBUG", default=True)
     namespace.update(
         BASE_DIR=base_dir,
@@ -148,6 +204,7 @@ def configure_service_settings(
         ALLOWED_HOSTS=_allowed_hosts(debug),
         CSRF_TRUSTED_ORIGINS=env_list("DJANGO_CSRF_TRUSTED_ORIGINS"),
         DEALDATA_INGEST_TOKEN=os.environ.get("DEALDATA_INGEST_TOKEN", ""),
+        DEALDATA_REQUIRE_INGEST_TOKEN=require_ingest_token,
         INSTALLED_APPS=[*DJANGO_APPS, "rest_framework", app_config],
         MIDDLEWARE=MIDDLEWARE,
         ROOT_URLCONF=f"{project_module}.urls",
@@ -169,8 +226,10 @@ def configure_service_settings(
             "DJANGO_SECURE_SSL_REDIRECT",
             default=False,
         ),
-        SECURE_HSTS_SECONDS=int(
-            os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "0"),
+        SECURE_HSTS_SECONDS=env_int(
+            "DJANGO_SECURE_HSTS_SECONDS",
+            default=0,
+            minimum=0,
         ),
         SECURE_HSTS_INCLUDE_SUBDOMAINS=env_bool(
             "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",
@@ -190,8 +249,11 @@ def configure_service_settings(
         sentry_sdk.init(
             dsn=sentry_dsn,
             environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
-            traces_sample_rate=float(
-                os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.0"),
+            traces_sample_rate=env_float(
+                "SENTRY_TRACES_SAMPLE_RATE",
+                default=0.0,
+                minimum=0.0,
+                maximum=1.0,
             ),
             send_default_pii=env_bool("SENTRY_SEND_DEFAULT_PII"),
         )

@@ -16,4 +16,5 @@ configure_service_settings(
     app_config="sensor_data.apps.SensorDataConfig",
     database_name="dealdata_sensor",
     include_wsgi=False,
+    require_ingest_token=True,
 )

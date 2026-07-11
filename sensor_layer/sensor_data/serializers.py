@@ -3,6 +3,7 @@
 from rest_framework import serializers
 
 from dealdata_common.serializers import (
+    MAX_INGEST_BATCH_SIZE,
     WildFiEventIngestSerializer,
     validate_payload_object,
 )
@@ -23,4 +24,7 @@ class WildFiSensorIngestSerializer(WildFiEventIngestSerializer):
 class WildFiSensorBatchSerializer(serializers.Serializer):
     """Validate a batch of decoded DEALIoT `raw.sensor` events."""
 
-    events = WildFiSensorIngestSerializer(many=True)
+    events = WildFiSensorIngestSerializer(
+        many=True,
+        max_length=MAX_INGEST_BATCH_SIZE,
+    )

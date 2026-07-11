@@ -308,6 +308,24 @@ def test_wildfi_sensor_batch_ingest_accepts_array_body() -> None:
     CHECK.assertEqual(response.data["inserted"], 1)
 
 
+def test_wildfi_sensor_batch_ingest_rejects_oversized_batch() -> None:
+    """Sensor batch ingestion bounds one request to a safe event count."""
+    event = {
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": {"sensor_type": "temperature", "value": 18.5},
+    }
+
+    response = APIClient().post(
+        "/api/ingest/wildfi/sensor/batch/",
+        {"events": [event] * 1001},
+        format="json",
+    )
+
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertIn("1000", str(response.data["detail"]))
+
+
 @pytest.mark.django_db
 def test_wildfi_sensor_list_filters_by_device_type_and_time() -> None:
     """Sensor list endpoint filters and paginates stored events."""
@@ -347,6 +365,17 @@ def test_wildfi_sensor_list_filters_by_device_type_and_time() -> None:
 def test_wildfi_sensor_list_rejects_invalid_datetime() -> None:
     """Sensor list endpoint validates date filters."""
     response = APIClient().get("/api/wildfi/sensor/", {"from": "not-a-date"})
+
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertEqual(response.data["detail"], INVALID_LIST_QUERY_PARAMETERS_DETAIL)
+
+
+def test_wildfi_sensor_list_rejects_reversed_time_window() -> None:
+    """Sensor list validation rejects time windows with an inverted range."""
+    response = APIClient().get(
+        "/api/wildfi/sensor/",
+        {"from": "2026-05-24T13:00:00Z", "to": "2026-05-24T12:00:00Z"},
+    )
 
     CHECK.assertEqual(response.status_code, 400)
     CHECK.assertEqual(response.data["detail"], INVALID_LIST_QUERY_PARAMETERS_DETAIL)

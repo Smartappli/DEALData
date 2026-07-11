@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from argparse import ArgumentTypeError
 from importlib import import_module
 import json
 import os
@@ -28,11 +29,30 @@ def csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def non_negative_int(value: str) -> int:
+    """Parse a non-negative integer command-line option."""
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ArgumentTypeError("Expected a non-negative integer.") from exc
+    if parsed < 0:
+        raise ArgumentTypeError("Expected a non-negative integer.")
+    return parsed
+
+
+def positive_int(value: str) -> int:
+    """Parse a strictly positive integer command-line option."""
+    parsed = non_negative_int(value)
+    if parsed == 0:
+        raise ArgumentTypeError("Expected a positive integer.")
+    return parsed
+
+
 def decode_json(value: bytes) -> dict[str, Any] | None:
     """Decode a Kafka message value into a JSON object payload."""
     try:
         decoded = json.loads(value.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except UnicodeDecodeError, json.JSONDecodeError:
         return None
     return decoded if isinstance(decoded, dict) else None
 
@@ -101,13 +121,13 @@ class DealIotKafkaCommand(BaseCommand):
         )
         parser.add_argument(
             "--poll-timeout-ms",
-            type=int,
-            default=int(env("DEALDATA_KAFKA_POLL_TIMEOUT_MS", default="1000")),
+            type=non_negative_int,
+            default=env("DEALDATA_KAFKA_POLL_TIMEOUT_MS", default="1000"),
         )
         parser.add_argument(
             "--max-records",
-            type=int,
-            default=int(env("DEALDATA_KAFKA_MAX_RECORDS", default="100")),
+            type=positive_int,
+            default=env("DEALDATA_KAFKA_MAX_RECORDS", default="100"),
         )
         parser.add_argument(
             "--once",
@@ -133,12 +153,18 @@ class DealIotKafkaCommand(BaseCommand):
         bootstrap_servers = csv(options["bootstrap_servers"])
         if not bootstrap_servers:
             raise CommandError("At least one Kafka bootstrap server is required.")
+        topic = options["topic"].strip()
+        if not topic:
+            raise CommandError("A Kafka topic is required.")
+        group_id = options["group_id"].strip()
+        if not group_id:
+            raise CommandError("A Kafka group ID is required.")
 
         kafka_consumer = load_kafka_consumer()
         return kafka_consumer(
-            options["topic"],
+            topic,
             bootstrap_servers=bootstrap_servers,
-            group_id=options["group_id"],
+            group_id=group_id,
             enable_auto_commit=False,
             auto_offset_reset=options["auto_offset_reset"],
         )

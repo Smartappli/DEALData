@@ -2,13 +2,17 @@
 
 import logging
 
-from django.db import DatabaseError, connections
-from django.http import HttpResponse, JsonResponse
+from django.db import connections
 from django.views.decorators.http import require_safe
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from dealdata_common.observability import (
+    liveness_response,
+    prometheus_metrics_response,
+    readiness_response,
+)
 from dealdata_common.views import (
     INVALID_LIST_QUERY_PARAMETERS_DETAIL,
     QueryParameterError,
@@ -29,30 +33,17 @@ LOGGER = logging.getLogger(__name__)
 def health_live(request):
     """Return a cheap liveness response."""
     del request
-    return JsonResponse({"status": "ok", "service": "sensor"})
+    return liveness_response("sensor")
 
 
 @require_safe
 def health_ready(request):
     """Return readiness after checking the default database connection."""
     del request
-    try:
-        with connections["default"].cursor() as cursor:
-            cursor.execute("SELECT 1")
-            cursor.fetchone()
-    except DatabaseError:
-        LOGGER.warning("Sensor database readiness check failed.")
-        return JsonResponse(
-            {
-                "status": "error",
-                "service": "sensor",
-                "database": "unavailable",
-                "detail": "Database connection check failed.",
-            },
-            status=503,
-        )
-    return JsonResponse(
-        {"status": "ok", "service": "sensor", "database": "available"},
+    return readiness_response(
+        "sensor",
+        database_connections=connections,
+        logger=LOGGER,
     )
 
 
@@ -64,18 +55,20 @@ def metrics(request):
     total_devices = (
         WildFiDecodedSensorEvent.objects.values("wildfi_device_id").distinct().count()
     )
-    body = "\n".join(
+    return prometheus_metrics_response(
         [
-            "# HELP dealdata_sensor_wildfi_events_total Stored WildFi sensor events.",
-            "# TYPE dealdata_sensor_wildfi_events_total gauge",
-            f"dealdata_sensor_wildfi_events_total {total_events}",
-            "# HELP dealdata_sensor_wildfi_devices_total WildFi sensor devices.",
-            "# TYPE dealdata_sensor_wildfi_devices_total gauge",
-            f"dealdata_sensor_wildfi_devices_total {total_devices}",
-            "",
+            (
+                "dealdata_sensor_wildfi_events_total",
+                "Stored WildFi sensor events.",
+                total_events,
+            ),
+            (
+                "dealdata_sensor_wildfi_devices_total",
+                "WildFi sensor devices.",
+                total_devices,
+            ),
         ],
     )
-    return HttpResponse(body, content_type="text/plain; version=0.0.4")
 
 
 def _serialize_sensor_event(event: WildFiDecodedSensorEvent) -> dict[str, object]:

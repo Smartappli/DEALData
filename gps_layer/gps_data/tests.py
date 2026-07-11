@@ -1,5 +1,6 @@
 """Tests for the gps_data application."""
 
+from argparse import ArgumentTypeError
 from io import StringIO
 import json
 from secrets import token_urlsafe
@@ -8,17 +9,120 @@ import types
 from unittest import TestCase
 from unittest.mock import patch
 
+from django.core.checks import Tags, run_checks
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import DatabaseError
-from django.test import Client
+from django.test import Client, override_settings
 from django.utils import timezone
 import pytest
 from rest_framework.test import APIClient
 
 from gps_data.models import GPSSensor, ProcessedGPSDataObservedObject, WildFiGPSFix
+from dealdata_common.kafka import (
+    DealIotKafkaCommand,
+    non_negative_int,
+    positive_int,
+)
 from dealdata_common.views import INVALID_LIST_QUERY_PARAMETERS_DETAIL
 
 CHECK = TestCase()
+EMPTY_INGEST_TOKEN = str()
+TEST_INGEST_TOKEN = token_urlsafe(32)
+
+
+@pytest.mark.parametrize(
+    ("parser", "value", "expected"),
+    [(non_negative_int, "0", 0), (positive_int, "1", 1)],
+)
+def test_kafka_integer_option_parsers_accept_supported_values(
+    parser,
+    value: str,
+    expected: int,
+) -> None:
+    """Kafka worker options accept their documented integer ranges."""
+    CHECK.assertEqual(parser(value), expected)
+
+
+@pytest.mark.parametrize(
+    ("parser", "value"),
+    [
+        (non_negative_int, "-1"),
+        (non_negative_int, "not-an-integer"),
+        (positive_int, "0"),
+    ],
+)
+def test_kafka_integer_option_parsers_reject_invalid_values(parser, value: str) -> None:
+    """Kafka worker options reject invalid values before connecting to a broker."""
+    with pytest.raises(ArgumentTypeError):
+        parser(value)
+
+
+@pytest.mark.parametrize(
+    ("options", "message"),
+    [
+        (
+            {"bootstrap_servers": "unit:9092", "topic": " ", "group_id": "group"},
+            "Kafka topic",
+        ),
+        (
+            {"bootstrap_servers": "unit:9092", "topic": "raw.gps", "group_id": " "},
+            "Kafka group ID",
+        ),
+    ],
+)
+def test_kafka_consumer_requires_topic_and_group_id(options, message: str) -> None:
+    """Kafka workers fail clearly when a topic or group ID is blank."""
+    with pytest.raises(CommandError, match=message):
+        DealIotKafkaCommand._build_consumer(options)
+
+
+@override_settings(
+    DEBUG=False,
+    SECURE_SSL_REDIRECT=False,
+    SECURE_HSTS_SECONDS=0,
+    SECURE_HSTS_INCLUDE_SUBDOMAINS=False,
+    DEALDATA_REQUIRE_INGEST_TOKEN=True,
+    DEALDATA_INGEST_TOKEN=EMPTY_INGEST_TOKEN,
+)
+def test_deployment_checks_reject_insecure_ingestion_configuration() -> None:
+    """Production checks reject missing HTTPS, HSTS, and ingestion-token settings."""
+    error_ids = {
+        message.id
+        for message in run_checks(
+            tags=[Tags.security],
+            include_deployment_checks=True,
+        )
+    }
+
+    CHECK.assertTrue(
+        {"dealdata.E001", "dealdata.E002", "dealdata.E003", "dealdata.E004"}
+        <= error_ids,
+    )
+
+
+@override_settings(
+    DEBUG=False,
+    SECURE_SSL_REDIRECT=True,
+    SECURE_HSTS_SECONDS=31536000,
+    SECURE_HSTS_INCLUDE_SUBDOMAINS=True,
+    SECURE_HSTS_PRELOAD=True,
+    DEALDATA_REQUIRE_INGEST_TOKEN=True,
+    DEALDATA_INGEST_TOKEN=TEST_INGEST_TOKEN,
+)
+def test_deployment_checks_accept_hardened_ingestion_configuration() -> None:
+    """Production checks accept the supported HTTPS and ingestion settings."""
+    error_ids = {
+        message.id
+        for message in run_checks(
+            tags=[Tags.security],
+            include_deployment_checks=True,
+        )
+    }
+
+    CHECK.assertFalse(
+        {error_id for error_id in error_ids if error_id.startswith("dealdata.")},
+    )
 
 
 def test_gps_sensor_string_representation() -> None:
@@ -235,6 +339,45 @@ def test_wildfi_gps_ingest_rejects_missing_longitude() -> None:
     CHECK.assertIn("longitude", str(response.data["detail"]))
 
 
+def test_wildfi_gps_ingest_rejects_non_finite_payload_coordinate() -> None:
+    """GPS ingestion rejects non-finite coordinate values from decoded payloads."""
+    event = {
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "payload": {"lat": "NaN", "lon": 5.5667},
+    }
+
+    response = APIClient().post(
+        "/api/ingest/wildfi/gps/",
+        event,
+        format="json",
+    )
+
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertIn("finite", str(response.data["detail"]))
+
+
+@pytest.mark.django_db
+def test_wildfi_gps_ingest_rejects_out_of_range_coordinates() -> None:
+    """GPS ingestion returns validation errors instead of persisting bad points."""
+    event = {
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 91,
+        "longitude": 5.5667,
+        "payload": {"fix": 3},
+    }
+
+    response = APIClient().post(
+        "/api/ingest/wildfi/gps/",
+        event,
+        format="json",
+    )
+
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertEqual(WildFiGPSFix.objects.count(), 0)
+
+
 @pytest.mark.django_db
 def test_wildfi_gps_ingest_rejects_invalid_token(settings) -> None:
     """Ingestion rejects requests with a wrong shared token."""
@@ -280,6 +423,26 @@ def test_wildfi_gps_batch_ingest_accepts_array_body() -> None:
 
     CHECK.assertEqual(response.status_code, 200)
     CHECK.assertEqual(response.data["inserted"], 1)
+
+
+def test_wildfi_gps_batch_ingest_rejects_oversized_batch() -> None:
+    """GPS batch ingestion bounds one request to a safe event count."""
+    event = {
+        "device_id": "wildfi-17",
+        "timestamp": "2026-05-24T12:30:00Z",
+        "latitude": 50.6333,
+        "longitude": 5.5667,
+        "payload": {"fix": 3},
+    }
+
+    response = APIClient().post(
+        "/api/ingest/wildfi/gps/batch/",
+        {"events": [event] * 1001},
+        format="json",
+    )
+
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertIn("1000", str(response.data["detail"]))
 
 
 @pytest.mark.django_db
@@ -330,6 +493,17 @@ def test_wildfi_gps_list_filters_by_device_and_time() -> None:
 def test_wildfi_gps_list_rejects_invalid_datetime() -> None:
     """GPS list endpoint validates date filters."""
     response = APIClient().get("/api/wildfi/gps/", {"from": "not-a-date"})
+
+    CHECK.assertEqual(response.status_code, 400)
+    CHECK.assertEqual(response.data["detail"], INVALID_LIST_QUERY_PARAMETERS_DETAIL)
+
+
+def test_wildfi_gps_list_rejects_reversed_time_window() -> None:
+    """GPS list validation rejects time windows with an inverted range."""
+    response = APIClient().get(
+        "/api/wildfi/gps/",
+        {"from": "2026-05-24T13:00:00Z", "to": "2026-05-24T12:00:00Z"},
+    )
 
     CHECK.assertEqual(response.status_code, 400)
     CHECK.assertEqual(response.data["detail"], INVALID_LIST_QUERY_PARAMETERS_DETAIL)

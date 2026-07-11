@@ -33,6 +33,14 @@ Good first issues must be small, reproducible, and include acceptance criteria p
 Run the relevant gates before opening a pull request:
 
 ```powershell
+.\scripts\validate.ps1
+# Or target one service: .\scripts\validate.ps1 -Layer gps
+```
+
+The script runs compilation, the Django system check, migration drift detection,
+and the relevant pytest suite. The equivalent explicit commands are:
+
+```powershell
 .\.venv\Scripts\python.exe -m compileall -q core_layer gps_layer sensor_layer
 cd core_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=core.settings -q
 cd ..\gps_layer; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest . --ds=gps.settings -q

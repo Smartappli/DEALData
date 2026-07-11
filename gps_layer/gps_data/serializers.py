@@ -3,6 +3,7 @@
 from rest_framework import serializers
 
 from dealdata_common.serializers import (
+    MAX_INGEST_BATCH_SIZE,
     WildFiEventIngestSerializer,
     validate_payload_object,
 )
@@ -55,4 +56,7 @@ class WildFiGPSIngestSerializer(WildFiEventIngestSerializer):
 class WildFiGPSBatchSerializer(serializers.Serializer):
     """Validate a batch of decoded DEALIoT `raw.gps` events."""
 
-    events = WildFiGPSIngestSerializer(many=True)
+    events = WildFiGPSIngestSerializer(
+        many=True,
+        max_length=MAX_INGEST_BATCH_SIZE,
+    )

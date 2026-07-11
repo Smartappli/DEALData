@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError, transaction
 from rest_framework import status
+
+from dealdata_common.ingestion import persist_idempotent_event
 
 from .models import WildFiDecodedSensorEvent
 from .serializers import WildFiSensorIngestSerializer
@@ -55,30 +55,17 @@ def ingest_dealiot_sensor_event(
     if not serializer.is_valid():
         return {"detail": serializer.errors}, status.HTTP_400_BAD_REQUEST
 
-    event = WildFiDecodedSensorEvent.from_dealiot_event(serializer.validated_data)
-    existing = find_existing_sensor_event(event)
-    if existing:
-        return (
-            serialize_sensor_ingest_event(existing, duplicate=True),
-            status.HTTP_200_OK,
-        )
-
     try:
-        with transaction.atomic():
-            event.full_clean()
-            event.save()
-    except DjangoValidationError as exc:
-        return {"detail": exc.message_dict}, status.HTTP_400_BAD_REQUEST
-    except IntegrityError:
-        existing = find_existing_sensor_event(event)
-        if existing:
-            return (
-                serialize_sensor_ingest_event(existing, duplicate=True),
-                status.HTTP_200_OK,
-            )
-        raise
-
-    return (
-        serialize_sensor_ingest_event(event, duplicate=False),
-        status.HTTP_201_CREATED,
+        event = WildFiDecodedSensorEvent.from_dealiot_event(
+            serializer.validated_data,
+        )
+    except ValueError as exc:
+        return {"detail": str(exc)}, status.HTTP_400_BAD_REQUEST
+    return persist_idempotent_event(
+        event,
+        find_existing=find_existing_sensor_event,
+        serialize=lambda item, duplicate: serialize_sensor_ingest_event(
+            item,
+            duplicate=duplicate,
+        ),
     )

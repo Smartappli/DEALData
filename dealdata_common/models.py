@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import hashlib
 import json
+import math
 from typing import Any
 from uuid import UUID, uuid7
 
@@ -69,7 +70,15 @@ def event_float(
         if value is None or value == "":
             value = payload.get(field_name)
         if value is not None and value != "":
-            return float(value)
+            try:
+                parsed = float(value)
+            except (TypeError, ValueError) as exc:
+                message = f"DEALIoT event field '{field_name}' must be a number."
+                raise ValueError(message) from exc
+            if not math.isfinite(parsed):
+                message = f"DEALIoT event field '{field_name}' must be finite."
+                raise ValueError(message)
+            return parsed
     if required:
         names = ", ".join(field_names)
         message = f"DEALIoT event must contain one of: {names}."
