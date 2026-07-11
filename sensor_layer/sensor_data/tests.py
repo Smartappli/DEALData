@@ -152,8 +152,20 @@ def test_wildfi_sensor_type_prefers_explicit_payload_value() -> None:
 
 
 @pytest.mark.django_db
-def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
-    """The Kafka worker persists one DEALIoT raw.sensor message."""
+def test_dealiot_kafka_consumer_matches_http_sensor_ingestion() -> None:
+    """Kafka retries keep the event first persisted through the HTTP API."""
+    event = {
+        "event_id": "sensor-event-kafka",
+        "device_id": "WF-004",
+        "timestamp": "2024-01-01T00:00:00+00:00",
+        "mqtt_topic": "wildfi/tags/WF-004/environment",
+        "payload": {"temperatureInDegCel": 18.7},
+    }
+    http_response = APIClient().post(
+        "/api/ingest/wildfi/sensor/",
+        event,
+        format="json",
+    )
 
     class FakeKafkaConsumer:
         """Minimal kafka-python consumer test double."""
@@ -175,13 +187,6 @@ def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
             if self.polls:
                 return {}
             self.polls += 1
-            event = {
-                "event_id": "sensor-event-kafka",
-                "device_id": "WF-004",
-                "timestamp": "2024-01-01T00:00:00+00:00",
-                "mqtt_topic": "wildfi/tags/WF-004/environment",
-                "payload": {"temperatureInDegCel": 18.7},
-            }
             message = types.SimpleNamespace(
                 value=json.dumps(event).encode("utf-8"),
                 topic="raw.sensor",
@@ -199,6 +204,7 @@ def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
             self.closed = True
 
     fake_kafka = types.SimpleNamespace(KafkaConsumer=FakeKafkaConsumer)
+    stdout = StringIO()
 
     with patch.dict(sys.modules, {"kafka": fake_kafka}):
         call_command(
@@ -206,14 +212,22 @@ def test_dealiot_kafka_consumer_persists_sensor_event() -> None:
             "--once",
             "--bootstrap-servers",
             "unit:9092",
-            stdout=StringIO(),
+            stdout=stdout,
             stderr=StringIO(),
         )
 
     sensor_event = WildFiDecodedSensorEvent.objects.get(
         event_id="sensor-event-kafka",
     )
+    CHECK.assertEqual(http_response.status_code, 201)
+    CHECK.assertEqual(
+        http_response.data["id"],
+        str(sensor_event.wildfi_decoded_sensor_event_id),
+    )
+    CHECK.assertEqual(http_response.data["payload_hash"], sensor_event.payload_hash)
     CHECK.assertEqual(sensor_event.sensor_type, "environment")
+    CHECK.assertEqual(WildFiDecodedSensorEvent.objects.count(), 1)
+    CHECK.assertIn("duplicates=1", stdout.getvalue())
     CHECK.assertIs(FakeKafkaConsumer.instances[0].committed, True)
     CHECK.assertIs(FakeKafkaConsumer.instances[0].closed, True)
 

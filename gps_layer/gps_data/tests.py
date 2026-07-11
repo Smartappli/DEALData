@@ -228,8 +228,21 @@ def test_wildfi_gps_ingest_accepts_dealiot_metric_aliases() -> None:
 
 
 @pytest.mark.django_db
-def test_dealiot_kafka_consumer_persists_gps_event() -> None:
-    """The Kafka worker persists one DEALIoT raw.gps message."""
+def test_dealiot_kafka_consumer_matches_http_gps_ingestion() -> None:
+    """Kafka retries keep the event first persisted through the HTTP API."""
+    event = {
+        "event_id": "gps-event-kafka",
+        "device_id": "WF-004",
+        "timestamp": "2024-01-01T00:00:00+00:00",
+        "latitude": 47.695,
+        "longitude": 9.132,
+        "altitude_m": 411.2,
+    }
+    http_response = APIClient().post(
+        "/api/ingest/wildfi/gps/",
+        event,
+        format="json",
+    )
 
     class FakeKafkaConsumer:
         """Minimal kafka-python consumer test double."""
@@ -251,14 +264,6 @@ def test_dealiot_kafka_consumer_persists_gps_event() -> None:
             if self.polls:
                 return {}
             self.polls += 1
-            event = {
-                "event_id": "gps-event-kafka",
-                "device_id": "WF-004",
-                "timestamp": "2024-01-01T00:00:00+00:00",
-                "latitude": 47.695,
-                "longitude": 9.132,
-                "altitude_m": 411.2,
-            }
             message = types.SimpleNamespace(
                 value=json.dumps(event).encode("utf-8"),
                 topic="raw.gps",
@@ -276,6 +281,7 @@ def test_dealiot_kafka_consumer_persists_gps_event() -> None:
             self.closed = True
 
     fake_kafka = types.SimpleNamespace(KafkaConsumer=FakeKafkaConsumer)
+    stdout = StringIO()
 
     with patch.dict(sys.modules, {"kafka": fake_kafka}):
         call_command(
@@ -283,12 +289,17 @@ def test_dealiot_kafka_consumer_persists_gps_event() -> None:
             "--once",
             "--bootstrap-servers",
             "unit:9092",
-            stdout=StringIO(),
+            stdout=stdout,
             stderr=StringIO(),
         )
 
     gps_fix = WildFiGPSFix.objects.get(event_id="gps-event-kafka")
+    CHECK.assertEqual(http_response.status_code, 201)
+    CHECK.assertEqual(http_response.data["id"], str(gps_fix.wildfi_gps_fix_id))
+    CHECK.assertEqual(http_response.data["payload_hash"], gps_fix.payload_hash)
     CHECK.assertEqual(gps_fix.altitude, 411.2)
+    CHECK.assertEqual(WildFiGPSFix.objects.count(), 1)
+    CHECK.assertIn("duplicates=1", stdout.getvalue())
     CHECK.assertIs(FakeKafkaConsumer.instances[0].committed, True)
     CHECK.assertIs(FakeKafkaConsumer.instances[0].closed, True)
 

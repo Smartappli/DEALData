@@ -54,6 +54,7 @@ The default limit is 100 and the maximum is 1,000. A malformed query receives `4
 
 The `consume_dealiot_kafka` command sends decoded Kafka payloads through the same ingestion functions as HTTP.
 This preserves idempotency and validation outcomes across both transports.
+Transport-parity tests verify that replaying an HTTP-persisted event through Kafka keeps its identifier and payload hash while reporting a duplicate.
 The consumer commits a batch only after every message has been processed; invalid JSON and validation failures are counted as rejected and committed to avoid an infinite retry loop.
 
 Worker configuration requirements:
