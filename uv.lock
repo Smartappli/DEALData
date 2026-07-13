@@ -243,7 +243,7 @@ requires-dist = [
     { name = "djangorestframework-simplejwt", specifier = "==5.5.1" },
     { name = "djangorestframework-stubs", specifier = ">=3.17.0" },
     { name = "granian", specifier = "==2.7.9" },
-    { name = "kafka-python", specifier = "==3.0.2" },
+    { name = "kafka-python", specifier = "==3.0.8" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = "==3.3.4" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-cov", marker = "extra == 'test'" },
@@ -451,11 +451,11 @@ wheels = [
 
 [[package]]
 name = "kafka-python"
-version = "3.0.2"
+version = "3.0.8"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2d/5f/868bd4444b57fb410f63cf9c641d9a84fd6a51ac5eaf11140f99db8821fe/kafka_python-3.0.2.tar.gz", hash = "sha256:1921af12d8bc9e37843025b89c782d1c90498d80373af590aad45ba4fcfa6e77", size = 499942, upload-time = "2026-06-18T13:32:32.655Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/61/c5132aae897587d9135322ca66d46f14f5d4f11fef41b24963f1a5ab43d1/kafka_python-3.0.8.tar.gz", hash = "sha256:0e9d89d40ae1cb45eae2f89fa9abff919c49d54299a6b3774b5261d6d6ff11e2", size = 513378, upload-time = "2026-07-09T18:53:02.35Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/c3/9fe1a3f29c1f68b478f01a94d9bafea978d67a7c403672f2bd01cbfd95c6/kafka_python-3.0.2-py3-none-any.whl", hash = "sha256:8f674afff08d40c981db903b6eb8ae9f3652909081158921437ee80e465bd9c7", size = 606623, upload-time = "2026-06-18T13:32:34.297Z" },
+    { url = "https://files.pythonhosted.org/packages/87/8d/e21b9560d7b915657320b62021be204c60216a0a4c3fe3da3f76e20371a0/kafka_python-3.0.8-py3-none-any.whl", hash = "sha256:e0fd7d3a70e4c85506c747e722cabb65a7beaaa7ccd95840d10bf653d77da7ed", size = 614077, upload-time = "2026-07-09T18:53:00.374Z" },
 ]
 
 [[package]]
