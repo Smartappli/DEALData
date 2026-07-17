@@ -1,1 +1,0 @@
-"""GPS data application package."""
