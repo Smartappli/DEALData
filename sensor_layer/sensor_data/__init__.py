@@ -1,1 +1,0 @@
-"""Sensor data application package."""
