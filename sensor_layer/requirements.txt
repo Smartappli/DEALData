@@ -19,7 +19,7 @@ kafka-python==3.0.8
 # --- Postgres driver ---
 psycopg[binary,pool]==3.3.4
 python-dotenv==1.2.2
-sentry-sdk[django]==2.65.0
+sentry-sdk[django]==2.66.0
 servestatic[brotli]==4.3.1
 uuid-utils==0.17.0
 valkey==6.1.1
